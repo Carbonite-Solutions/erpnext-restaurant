@@ -491,7 +491,7 @@ class OrderManage extends ObjectManage {
 
   make_edit_input() {
     const default_class = `input entry-order-editor input-with-feedback center`;
-
+    const me = this;
     const objs = [
       {
         name: "Minus",
@@ -558,6 +558,7 @@ class OrderManage extends ObjectManage {
         content: '<span class="fa fa-plus">',
         on: {
           'click': () => {
+            this.current_order.select();
             if (this.num_pad.input && !this.num_pad.input.is_disabled) {
               this.num_pad.input.plus();
             }
@@ -579,6 +580,8 @@ class OrderManage extends ObjectManage {
             if (current_item != null) {
               if (current_item.is_enabled_to_delete) {
                 current_item.delete();
+                this.order_status_message();
+                this.current_order.select();
               } else {
                 frappe.msgprint(__("You do not have permissions to delete Items"));
               }
@@ -944,6 +947,7 @@ class OrderManage extends ObjectManage {
   }
 
   add_order() {
+    const me = this;
     RM.working("Adding Order");
     frappeHelper.api.call({
       model: "Restaurant Object",
@@ -953,6 +957,8 @@ class OrderManage extends ObjectManage {
       always: (r) => {
         RM.ready();
         if (typeof r.message != "undefined") {
+          me.get_orders();
+          me.append_order();
           RM.sound_submit();
           //RM.is_mobile && this.select_last_order();
         }
@@ -1051,6 +1057,7 @@ class OrderManage extends ObjectManage {
       content: `<span class="fa fa-plus"></span>`
     }).on("click", () => {
       this.add_order();
+      console.log("New Order Clicked");
     }, !RM.restrictions.to_new_order ? DOUBLE_CLICK : null);
 
     this.#components.new_order_button = new_order_button;
@@ -1124,7 +1131,6 @@ class OrderManage extends ObjectManage {
 
   order_status_message() {
     const container = $("#" + this.identifier);
-
     if (this.current_order) {
       container.addClass("has-order");
       if (this.current_order.items_count === 0) {

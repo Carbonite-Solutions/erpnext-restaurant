@@ -85,6 +85,9 @@ RestaurantObject = class RestaurantObject {
       args: { data: shape ? this.data.shape : JSON.stringify(this.data_style), shape: shape },
       always: () => {
         window.saving = false;
+        if (this.room) {
+          this.room.get_tables();
+        }
       },
     });
   }
@@ -440,6 +443,7 @@ RestaurantObject = class RestaurantObject {
                     }
 
                     frappe.db.set_value("Restaurant Object", this.data.name, "customer", dialog.get_value("customer")).then(() => {
+                      this.room.get_tables();
                       dialog.hide();
                       _open();
                     });
@@ -545,6 +549,9 @@ RestaurantObject = class RestaurantObject {
       method: "_delete",
       always: () => {
         RM.ready();
+        if (this.room) {
+          this.room.get_tables();
+        }
       },
       freeze: true
     });
@@ -561,6 +568,9 @@ RestaurantObject = class RestaurantObject {
           form_name: this.data.type === "Table" ? "restaurant-table" : "restaurant-production-center",
           callback: (self) => {
             self.hide();
+            setTimeout(function() {
+              window.location.reload();
+            }, 2000);
           },
           title: __(`Update ${this.data.type}`),
           field_properties: {

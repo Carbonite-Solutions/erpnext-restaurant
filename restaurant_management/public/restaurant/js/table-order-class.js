@@ -157,9 +157,11 @@ class TableOrder {
     }
 
     let test_item = null;
+    this.update_qty = true;
     this.in_items(item => {
       if (item.data.item_code === new_item.item_code) {
         if (RM.allows_to_edit_item.includes(item.data.status)) {
+          this.update_qty = false;
           item.data.qty += new_item.qty;
           item.data.rate = new_item.rate;
           item.data.price_list_rate = new_item.price_list_rate;
@@ -177,6 +179,10 @@ class TableOrder {
     if (test_item != null) {
       test_item.update();
       test_item.select(true);
+    }
+
+    if(this.update_qty) {
+      this.data.items_count += 1;
     }
   }
 

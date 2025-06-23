@@ -17,6 +17,7 @@
   "room_description",
   "customer_name",
   "dinners",
+  "work_order",
   "section_break_8",
   "customer_primary_address",
   "delivery_branch",
@@ -276,12 +277,19 @@
    "fieldname": "ordered_time",
    "fieldtype": "Datetime",
    "label": "Ordered Tyme"
+  },
+  {
+   "fieldname": "work_order",
+   "fieldtype": "Link",
+   "label": "Work Order",
+   "options": "Work Order",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2024-04-15 18:11:35.668706",
+ "modified": "2025-06-23 11:26:28.472144",
  "modified_by": "Administrator",
  "module": "Restaurant Management",
  "name": "Table Order",

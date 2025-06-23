@@ -222,13 +222,20 @@ class RestaurantRoom extends ObjectManage {
     if (RM.busy_message()) {
       return;
     }
+
     RM.working("Deleting Room");
+
+    if (RM.current_room?.data?.name === this.data.name) {
+      RM.delete_current_room();
+    }
+
     frappeHelper.api.call({
       model: "Restaurant Object",
       name: this.data.name,
       method: "_delete",
       always: (r) => {
         RM.ready();
+        RM.make_rooms();
       },
       freeze: false,
     });
@@ -272,6 +279,7 @@ class RestaurantRoom extends ObjectManage {
       },
       always: () => {
         RM.ready();
+        this.get_tables();
       },
     });
   }

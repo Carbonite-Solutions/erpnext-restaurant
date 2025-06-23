@@ -10,6 +10,7 @@ from frappe.model.document import Document
 import json
 
 from restaurant_management.restaurant_management.page.restaurant_manage.restaurant_manage import RestaurantManage
+from erpnext.manufacturing.doctype.work_order.work_order import make_work_order
 
 status_attending = "Attending"
 
@@ -478,13 +479,13 @@ class TableOrder(Document):
 
     def update_item(self, entry, unrestricted=False, synchronize_on_delete=True):
         if entry["qty"] == 0:
-            self.delete_item(entry["identifier"],
-                             unrestricted, synchronize_on_delete)
+            self.delete_item(entry["identifier"], unrestricted, synchronize_on_delete)
             return "db_commit"
         else:
             invoice = self.get_invoice({entry["identifier"]: entry})
             item = invoice.items[0]
 
+            # Build data dictionary
             data = dict(
                 item_code=item.item_code,
                 qty=item.qty,
@@ -496,21 +497,19 @@ class TableOrder(Document):
                 amount=invoice.grand_total,
                 discount_percentage=item.discount_percentage,
                 discount_amount=item.discount_amount,
-                status="Attending" if entry["status"] in [
-                    "Pending", "", None] else entry["status"],
+                status="Attending" if entry["status"] in ["Pending", "", None] else entry["status"],
                 identifier=entry["identifier"],
                 notes=entry["notes"],
                 room=self.room,
                 branch=self.branch,
                 table=self.table,
-                #table_description=self.table_info,
-                ordered_time=entry["ordered_time"]or frappe.utils.now_datetime(),
-                has_batch_no=entry["has_batch_no"],
-                batch_no=entry["batch_no"],
-                has_serial_no=entry["has_serial_no"],
-                serial_no=entry["serial_no"],
-                sub_items=entry["sub_items"],
-                is_customizable=entry["is_customizable"],
+                ordered_time=entry.get("ordered_time") or frappe.utils.now_datetime(),
+                has_batch_no=entry.get("has_batch_no"),
+                batch_no=entry.get("batch_no"),
+                has_serial_no=entry.get("has_serial_no"),
+                serial_no=entry.get("serial_no"),
+                sub_items=entry.get("sub_items"),
+                is_customizable=entry.get("is_customizable"),
             )
 
             self.validate()
@@ -519,11 +518,25 @@ class TableOrder(Document):
                 self.append('entry_items', data)
                 return "aggregate"
             else:
-                values = ','.join('='.join((f"`{key}`", """{value}""".format(value=(f"'{val}'" if val is not None else "") if key == "item_tax_template" else frappe.db.escape(val)))) for (key, val) in data.items())
-                base_sql = f"UPDATE `tabOrder Entry Item` set {values}"
- 
-                frappe.db.sql("""{base_sql} WHERE `identifier`='{identifier}'""".format(base_sql = base_sql, identifier=entry["identifier"]))
-                
+                # Safely handle dict fields
+                if isinstance(data.get("item_tax_rate"), dict):
+                    data["item_tax_rate"] = json.dumps(data["item_tax_rate"])
+                if isinstance(data.get("sub_items"), dict):
+                    data["sub_items"] = json.dumps(data["sub_items"])
+
+                keys = list(data.keys())
+                update_fields = ", ".join([f"`{key}` = %s" for key in keys])
+                values = [data[key] for key in keys]
+
+                # Add the identifier in WHERE clause
+                sql = f"""
+                    UPDATE `tabOrder Entry Item`
+                    SET {update_fields}
+                    WHERE `identifier` = %s
+                """
+                values.append(entry["identifier"])
+
+                frappe.db.sql(sql, values)
                 return "db_commit"
 
     def calculate_order(self, items, save=False):
@@ -701,8 +714,18 @@ class TableOrder(Document):
 
                 item.status = "Sent"
                 item.ordered_time = frappe.utils.now_datetime()
+                if not i.work_order:
+                    if i.qty > 0 and i.item_code and frappe.db.exists("BOM", {"item": i.item_code}):
+                        bom = frappe.db.get_value("BOM", {"item": i.item_code}, "name")
+                        wo_doc = make_work_order(bom, item=i.item_code, qty=i.qty)
+                        wo_doc.fg_warehouse = "Stores - UVS"
+                        wo_doc.wip_warehouse = "Work In Progress - UVS"
+                        wo_doc.save()
+                        i.work_order = wo_doc.name
+                else:
+                    frappe.db.set_value("Work Order", i.work_order, "qty", i.qty)
+                        
                 item.save()
-
                 data_to_send.append(table.get_command_data(item))
 
         self.reload()

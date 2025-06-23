@@ -433,7 +433,7 @@ class ProductItem {
       base_item.doctype = "Sales Invoice";
       base_item.currency = pos_profile.currency;
       base_item.pos_profile = pos_profile.name;
-
+      const me = this;
       this.get_items_detail(base_item).then(item_data => {
         const item_to_push = Object.assign({}, base_item, item_data);
 
@@ -453,6 +453,8 @@ class ProductItem {
         item_to_push.price_list_rate = rate;
 
         current_order.push_item(item_to_push);
+        current_order.show_items_count();
+        me.order_manage.order_status_message();
       });
     }
   }

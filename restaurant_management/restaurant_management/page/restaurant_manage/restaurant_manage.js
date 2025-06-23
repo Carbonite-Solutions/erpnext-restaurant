@@ -653,6 +653,7 @@ RestaurantManage = class RestaurantManage {
       method: this.url_manage + "add_room",
       args: { client: RM.client },
       always: () => {
+        this.make_rooms();
         this.ready();
       },
     });

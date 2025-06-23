@@ -42,7 +42,8 @@ class RestaurantManage:
             filters["name"] = ("in", rooms_enabled)
 
         rooms = frappe.get_all("Restaurant Object",
-                                "name,description", filters=filters)
+                                fields=["name", "description"], filters=filters, 
+                                order_by="creation asc")
 
         for room in rooms:
             t = frappe.get_doc("Restaurant Object", room.name)
