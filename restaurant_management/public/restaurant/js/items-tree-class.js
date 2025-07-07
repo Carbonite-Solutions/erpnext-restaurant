@@ -20,7 +20,7 @@ class ItemsTree {
       filters.item_group_name = ["in", RM.menu.items_groups];
     }
 
-    frappe.db.get_list("Item Group", { fields: ["*"], filters, order_by: "lft" }).then(groups => {
+    frappe.db.get_list("Item Group", { fields: ["*"], order_by: "lft" }).then(groups => {
       this.make_dom();
       this.render_parent_group(groups);
     });
@@ -85,16 +85,33 @@ class ItemsTree {
       const item_group = $(this).attr('data-group');
 
       const filter = item_group === "All Item Groups" ? { name: item_group } : { 
-        parent_item_group: item_group
+        item_group: item_group
       };
+
+      console.log(filter);
 
       if(this.in_menu) {
         filter.item_group_name = ["in", RM.menu.items_groups];
       }
 
-      frappe.db.get_list("Item Group", { fields: ["*"], filters: filter }).then(groups => {
-        self.render_tree(groups, self.wrapper.find('.tree'), true);
+      const items_container = self.wrapper.find('.tree');
+      items_container.empty();
+
+      const group_name = item_group === "All Item Groups" ? null : item_group;
+
+      const product_wrapper = $('<div class="col-md-12" style="padding:5px;"></div>').appendTo(items_container);
+
+      const productManage = new ProductItem({
+        wrapper: product_wrapper,
+        order_manage: self.order_manage,
+        item_tree: self,
+        item_group: group_name,
+        search_term: self.search_input.$input.val(),
+        search_field: self.search_input
       });
+
+      self.current_item_manage = productManage;
+
     });
 
     this.item_parent_wrapper.find(".item-group-action:first").click();

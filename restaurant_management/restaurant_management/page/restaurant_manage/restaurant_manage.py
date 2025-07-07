@@ -220,7 +220,7 @@ def get_items(start, page_length, price_list, item_group, pos_profile, item_type
     warehouse, hide_unavailable_items = frappe.db.get_value('POS Profile', pos_profile,
                                                             ['warehouse', 'hide_unavailable_items'])
     if not frappe.db.exists('Item Group', item_group):
-        item_group = get_root_of('Item Group')
+        item_group = frappe.db.get_value("Item Group", {"parent_item_group": ["is", "null"]}, "name")
 
     if search_value:
         data = search_serial_or_batch_or_barcode_number(search_value)
@@ -243,7 +243,16 @@ def get_items(start, page_length, price_list, item_group, pos_profile, item_type
     condition = get_conditions(item_code, serial_no, batch_no, barcode)
     condition += get_item_group_condition(pos_profile)
 
-    lft, rgt = frappe.db.get_value('Item Group', item_group, ['lft', 'rgt'])
+    group_values = frappe.db.get_value('Item Group', item_group, ['lft', 'rgt'])
+    if not group_values:
+        item_group = "All Item Groups"
+        group_values = frappe.db.get_value('Item Group', item_group, ['lft', 'rgt'])
+
+        if not group_values:
+            frappe.throw("Could not determine a valid root Item Group.")
+
+    lft, rgt = group_values
+
 
     bin_join_selection, bin_join_condition = "", ""
     if hide_unavailable_items:
@@ -254,30 +263,30 @@ def get_items(start, page_length, price_list, item_group, pos_profile, item_type
 
     item_type_condition = "AND item_type = '%s'" % item_type if item_type and len(item_type) > 0 else ""
     items_data = frappe.db.sql("""
-		SELECT
-			item.name AS item_code,
-			item.item_name,
-			item.description,
-			item.stock_uom,
-			item.image AS item_image,
-			item.is_stock_item,
+        SELECT
+            item.name AS item_code,
+            item.item_name,
+            item.description,
+            item.stock_uom,
+            item.image AS item_image,
+            item.is_stock_item,
             item.is_customizable,
             item.item_type
-		FROM
-			`tabItem` item {bin_join_selection}
-		WHERE
-			item.disabled = 0
-			AND item.has_variants = 0
-			AND item.is_sales_item = 1
-			AND item.is_fixed_asset = 0
-			AND item.item_group {item_group}
+        FROM
+            `tabItem` item {bin_join_selection}
+        WHERE
+            item.disabled = 0
+            AND item.has_variants = 0
+            AND item.is_sales_item = 1
+            AND item.is_fixed_asset = 0
+            AND item.item_group {item_group}
             {item_type_condition}
-			AND {condition}
-			{bin_join_condition}
-		ORDER BY
-			item.name asc
-		LIMIT
-			{start}, {page_length}"""
+            AND {condition}
+            {bin_join_condition}
+        ORDER BY
+            item.name asc
+        LIMIT
+            {start}, {page_length}"""
         .format(
         start=start,
         page_length=page_length,
@@ -291,9 +300,9 @@ def get_items(start, page_length, price_list, item_group, pos_profile, item_type
     if items_data:
         items = [d.item_code for d in items_data]
         item_prices_data = frappe.db.get_all("Item Price",
-                                          fields=[
-                                              "item_code", "price_list_rate", "currency"],
-                                          filters={'price_list': price_list, 'item_code': ['in', items]})
+                                            fields=[
+                                                "item_code", "price_list_rate", "currency"],
+                                            filters={'price_list': price_list, 'item_code': ['in', items]})
 
         item_prices = {}
         for d in item_prices_data:
