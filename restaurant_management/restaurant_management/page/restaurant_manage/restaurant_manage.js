@@ -353,19 +353,25 @@ RestaurantManage = class RestaurantManage {
   make_rooms() {
     const currents_rooms = Object.values(this.rooms || {}).map(room => room.name);
     this.working("Loading Rooms");
-    //this.clear_rooms(currents_rooms);
 
     return new Promise(res => {
       frappe.call({
         method: `${this.url_manage}get_rooms`
       }).then(r => {
+        Object.values(this.objects).forEach(obj => {
+          if (obj?.remove) obj.remove(); 
+        });
+
+        this.objects = {};
         this.rooms = r.message;
-        this.clear_rooms(currents_rooms);
+
+        $(this.rooms_container).empty();
+        $(this.floor_map).empty();
+
         this.render_rooms();
         this.ready();
-
         $("body").show();
-        res();
+        res(true);
       });
     });
   }
@@ -403,17 +409,25 @@ RestaurantManage = class RestaurantManage {
     this.rooms.forEach((room, index, rooms) => {
       const has_access_to_room = this.has_access_to_room(room.name);
 
-      if (this.object(room.name) == null) {
-        if (has_access_to_room) {
-          this.object(room.name, new RestaurantRoom(room))
+      if (!has_access_to_room) {
+        if (this.object(room.name)) {
+          this.object(room.name).remove();
+          delete this.objects[room.name];
         }
       } else {
-        if (!has_access_to_room) {
-          this.object(room.name).remove();
+        const existing = this.object(room.name);
+        if (!existing || existing.data.description !== room.description) {
+          if (existing) {
+            existing.remove();
+            delete this.objects[room.name];
+          }
+          this.object(room.name, new RestaurantRoom(room));
         } else {
-          this.object(room.name).data = room;
+          existing.data = room;
+          existing.reset_html();
         }
       }
+
 
       if (current === false) {
         if (this.current_room == null) {

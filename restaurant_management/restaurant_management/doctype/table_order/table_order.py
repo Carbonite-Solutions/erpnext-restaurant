@@ -22,6 +22,16 @@ class TableOrder(Document):
             self.synchronize(self.synchronize_data)
         else:
             self.synchronize(dict(status=self.status))
+        
+        completed_flag = True
+        if len(self.entry_items) > 0:
+            for i in self.entry_items:
+                if i.status != "Completed":
+                    completed_flag = False
+                    break
+                
+        if completed_flag:
+            self.status = "Completed"
 
         self.notify_status()
 
@@ -721,7 +731,14 @@ class TableOrder(Document):
                         wo_doc.fg_warehouse = "Stores - UVS"
                         wo_doc.wip_warehouse = "Work In Progress - UVS"
                         wo_doc.save()
-                        i.work_order = wo_doc.name
+                        wo_doc.submit()
+                        kitchen = frappe.new_doc("Kitchen")
+                        kitchen.item = i.item_code
+                        kitchen.item_notes = i.notes
+                        kitchen.qty = i.qty
+                        kitchen.table_order = self.name
+                        kitchen.work_order = wo_doc.name
+                        kitchen.save()
                 else:
                     frappe.db.set_value("Work Order", i.work_order, "qty", i.qty)
                         

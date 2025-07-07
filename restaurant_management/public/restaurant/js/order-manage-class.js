@@ -1057,7 +1057,6 @@ class OrderManage extends ObjectManage {
       content: `<span class="fa fa-plus"></span>`
     }).on("click", () => {
       this.add_order();
-      console.log("New Order Clicked");
     }, !RM.restrictions.to_new_order ? DOUBLE_CLICK : null);
 
     this.#components.new_order_button = new_order_button;

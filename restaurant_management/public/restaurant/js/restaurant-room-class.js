@@ -199,7 +199,8 @@ class RestaurantRoom extends ObjectManage {
       this.edit_form = new DeskForm({
         doc_name: this.data.name,
         form_name: "Restaurant Room",
-        callback: (self) => {
+        callback:(self) => {
+          RM.make_rooms();
           self.hide();
         },
         title: __("Update Room"),
