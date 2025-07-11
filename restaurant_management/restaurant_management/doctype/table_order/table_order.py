@@ -717,6 +717,13 @@ class TableOrder(Document):
         table = self._table
         items_to_return = []
         data_to_send = []
+        pos_settings = frappe.get_single("Restaurant POS Settings")
+        
+        if not pos_settings.work_in_progress_warehouse or not pos_settings.target_warehouse:
+            frappe.throw("Please set warehouses in the Restaurant POS Settings")
+            
+        wip_warehouse = pos_settings.work_in_progress_warehouse
+        t_warehouse = pos_settings.target_warehouse
         for i in self.entry_items:
             item = frappe.get_doc("Order Entry Item", {"identifier": i.identifier})
             if item.status == status_attending:
@@ -728,8 +735,8 @@ class TableOrder(Document):
                     if i.qty > 0 and i.item_code and frappe.db.exists("BOM", {"item": i.item_code}):
                         bom = frappe.db.get_value("BOM", {"item": i.item_code}, "name")
                         wo_doc = make_work_order(bom, item=i.item_code, qty=i.qty)
-                        wo_doc.fg_warehouse = "Stores - UVS"
-                        wo_doc.wip_warehouse = "Work In Progress - UVS"
+                        wo_doc.fg_warehouse = t_warehouse
+                        wo_doc.wip_warehouse = wip_warehouse
                         wo_doc.save()
                         wo_doc.submit()
                         kitchen = frappe.new_doc("Kitchen")

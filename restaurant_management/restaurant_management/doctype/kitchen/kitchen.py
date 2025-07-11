@@ -3,7 +3,7 @@
 
 import frappe
 from frappe.model.document import Document
-from erpnext.manufacturing.doctype.work_order.work_order import make_stock_entry
+from erpnext.manufacturing.doctype.work_order.work_order import (make_stock_entry, close_work_order, stop_unstop)
 
 
 class Kitchen(Document):
@@ -15,8 +15,10 @@ class Kitchen(Document):
 				statues = {
 					"Order Placed": "Sent",
 					"In Progress": "Attending",
+					"Hold": "Attending",
+					"Cancelled": "Closed",
 					"Finished": "Completed",
-					"Delivered": "Delivered"
+					"Delivered": "Delivered",
 				}
 
 				for row in order.entry_items:
@@ -26,27 +28,44 @@ class Kitchen(Document):
 
 				order.save()
 
-				if self.status == "Finished":
-					self.complete_work_order()
 		
 			if self.status == "Delivered":
 				self.flags.submit_after_save = True
+
+			self.set_work_order()
 
 	def on_update(self):
 		if getattr(self.flags, "submit_after_save", False):
 			if self.docstatus == 0:
 				self.submit()
 
-	def complete_work_order(self):
+	def set_work_order(self):
 		if self.work_order:
 			wo_doc = frappe.get_doc("Work Order", self.work_order)
-			if wo_doc.status != "Completed":
-				se_transfer_dict = make_stock_entry(self.work_order, purpose="Material Transfer for Manufacture")
+
+			if wo_doc.docstatus != 1:
+				return
+
+			if wo_doc.status == "Not Started" and self.status == "In Progress":
+				se_transfer_dict = make_stock_entry(self.work_order, purpose="Material Transfer for Manufacture", qty=self.qty)
 				se_transfer_doc = frappe.get_doc(se_transfer_dict)
 				se_transfer_doc.save()
 				se_transfer_doc.submit()
 
+			if wo_doc.status == "Stopped" and self.status == "In Progress":
+				stop_unstop(self.work_order, "Resumed")
+
+			if wo_doc.status == "In Process" and self.status == "Finished":
 				se_transfer_dict = make_stock_entry(self.work_order, purpose="Manufacture", qty=self.qty)
 				se_transfer_doc = frappe.get_doc(se_transfer_dict)
 				se_transfer_doc.save()
 				se_transfer_doc.submit()
+
+				close_work_order(self.work_order, "Closed")
+
+			if wo_doc.status == "In Process" and self.status == "Hold":
+				stop_unstop(self.work_order, "Stopped")
+
+			if self.status == "Cancelled":
+				if wo_doc.status != "Stopped":
+					stop_unstop(self.work_order, "Stopped")

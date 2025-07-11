@@ -130,7 +130,8 @@ class OrderItem {
 
         window.saving = false;
         RM.ready();
-      }
+        this.order.order_manage.current_order.select();
+      },
     });
   }
 
