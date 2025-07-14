@@ -416,6 +416,25 @@ RestaurantObject = class RestaurantObject {
                   fieldtype: 'Column Break'
                 },
                 {
+                  fieldtype: 'Check',
+                  label: __('Direct Checkin'),
+                  fieldname: "direct_checkin",
+                  onchange: function () {
+                    const is_checked = dialog.get_value("direct_checkin");
+                    const customer_field = dialog.get_field("customer");
+
+                    if (is_checked) {
+                      customer_field.df.hidden = true;
+                      customer_field.refresh();
+                      dialog.set_value("customer", RM.direct_checkin_customer);
+                    } else {
+                      customer_field.df.hidden = false;
+                      customer_field.refresh();
+                      dialog.set_value("customer", null);
+                    }
+                  }
+                },
+                {
                   fieldtype: 'Link', label: __('Customer'),
                   fieldname: "customer",
                   options: "Customer",

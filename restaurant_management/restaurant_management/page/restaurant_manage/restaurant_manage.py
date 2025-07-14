@@ -125,6 +125,10 @@ class RestaurantManage:
 def get_rooms():
     return RestaurantManage().get_rooms()
 
+@frappe.whitelist()
+def get_pos_res_settings():
+    return frappe.get_single("Restaurant POS Settings")
+
 
 @frappe.whitelist()
 def add_room(client=None):

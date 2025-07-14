@@ -68,6 +68,12 @@ RestaurantManage = class RestaurantManage {
     this.page = wrapper.page;
     this.url_manage = "restaurant_management.restaurant_management.page.restaurant_manage.restaurant_manage.";
     this.#company = frappe.defaults.get_user_default('company');
+    frappe.call({
+      method: `${this.url_manage}get_pos_res_settings`,
+      callback(r) {
+        RM.pos_res_settings = r.message;
+      }
+    })
 
     const assets = [
       'js/pos-restaurant-controller.js',
