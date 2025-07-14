@@ -65,7 +65,7 @@ class CheckIn extends DeskForm {
       { name: "edit_table", icon: "fa fa-refresh", label: "Table", type: "primary" },
       { name: "check_in", label: "Check In", type: "success", icon: "fa fa-check-square-o" },
       { name: "cancel", label: "Cancel", type: "danger", confirm: true, icon: "fa fa-times" },
-      { name: "finish", label: "Finish", type: "warning", confirm: true, icon: "fa fa-check" },
+      { name: "close", label: "Finish", type: "warning", confirm: true, icon: "fa fa-check" },
     ].map(action => {
       return this.add_action(action, () => {
         this.reservation_form && this.reservation_form[action.name]();
@@ -149,7 +149,7 @@ class Reservation extends DeskForm {
           if (table && table.length) {
             RM.navigate_room = room;
             RM.navigate_table = table;
-            frappe.set_route(`restaurant-manage?restaurant_room=${room}`);
+            window.location.reload();
           } else {
             this.edit_table();
           }

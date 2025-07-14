@@ -38,7 +38,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Status",
-   "options": "Order Placed\nIn Progress\nFinished\nDelivered"
+   "options": "Order Placed\nIn Progress\nFinished\nDelivered\nHold\nCancelled"
   },
   {
    "fieldname": "work_order",
@@ -88,7 +88,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-07-04 12:20:59.208432",
+ "modified": "2025-07-10 11:22:10.469430",
  "modified_by": "Administrator",
  "module": "Restaurant Management",
  "name": "Kitchen",

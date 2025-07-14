@@ -1,0 +1,61 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-07-11 17:11:54.380061",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "work_in_progress_warehouse",
+  "target_warehouse",
+  "column_break_meas",
+  "direct_checkin_customer"
+ ],
+ "fields": [
+  {
+   "fieldname": "work_in_progress_warehouse",
+   "fieldtype": "Link",
+   "label": "Work In Progress Warehouse",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "target_warehouse",
+   "fieldtype": "Link",
+   "label": "Target Warehouse",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "column_break_meas",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "direct_checkin_customer",
+   "fieldtype": "Link",
+   "label": "Direct Checkin Customer",
+   "options": "Customer"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2025-07-11 17:22:28.632887",
+ "modified_by": "Administrator",
+ "module": "Restaurant Management",
+ "name": "Restaurant POS Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
