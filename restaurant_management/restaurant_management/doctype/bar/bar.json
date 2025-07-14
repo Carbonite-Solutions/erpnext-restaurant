@@ -1,16 +1,15 @@
 {
  "actions": [],
  "allow_rename": 1,
- "creation": "2025-07-11 12:04:05.440178",
+ "creation": "2025-07-14 15:35:48.747957",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
   "status",
   "item",
   "qty",
-  "column_break_ruev",
+  "column_break_oswq",
   "item_notes",
-  "section_break_alip",
   "amended_from"
  ],
  "fields": [
@@ -18,20 +17,10 @@
    "default": "Order Placed",
    "fieldname": "status",
    "fieldtype": "Select",
-   "in_list_view": 1,
+   "in_preview": 1,
    "in_standard_filter": 1,
    "label": "Status",
-   "options": "Order Placed\nIn Progress\nFinished\nDelivered"
-  },
-  {
-   "fieldname": "amended_from",
-   "fieldtype": "Link",
-   "label": "Amended From",
-   "no_copy": 1,
-   "options": "Bar",
-   "print_hide": 1,
-   "read_only": 1,
-   "search_index": 1
+   "options": "Order Placed\nIn Progress\nFinished\nDelivered\nHold\nCancelled"
   },
   {
    "fieldname": "item",
@@ -50,7 +39,7 @@
    "read_only": 1
   },
   {
-   "fieldname": "column_break_ruev",
+   "fieldname": "column_break_oswq",
    "fieldtype": "Column Break"
   },
   {
@@ -61,15 +50,21 @@
    "read_only": 1
   },
   {
-   "fieldname": "section_break_alip",
-   "fieldtype": "Section Break"
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Bar",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-07-11 12:31:27.091572",
+ "modified": "2025-07-14 16:16:53.871900",
  "modified_by": "Administrator",
  "module": "Restaurant Management",
  "name": "Bar",

@@ -1,0 +1,19 @@
+{
+ "content": null,
+ "creation": "2025-07-14 15:41:25.662570",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2025-07-14 15:41:25.662570",
+ "modified_by": "Administrator",
+ "module": "Restaurant Management",
+ "name": "bar-orders",
+ "owner": "Administrator",
+ "page_name": "bar-orders",
+ "roles": [],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0,
+ "title": "Bar Orders"
+}
