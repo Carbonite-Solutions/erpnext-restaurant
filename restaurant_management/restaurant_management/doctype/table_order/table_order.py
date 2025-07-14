@@ -728,8 +728,8 @@ class TableOrder(Document):
                     if i.qty > 0 and i.item_code and frappe.db.exists("BOM", {"item": i.item_code}):
                         bom = frappe.db.get_value("BOM", {"item": i.item_code}, "name")
                         wo_doc = make_work_order(bom, item=i.item_code, qty=i.qty)
-                        wo_doc.fg_warehouse = "Stores - UVS"
-                        wo_doc.wip_warehouse = "Work In Progress - UVS"
+                        wo_doc.fg_warehouse = "Stores - US"
+                        wo_doc.wip_warehouse = "Work In Progress - US"
                         wo_doc.save()
                         wo_doc.submit()
                         kitchen = frappe.new_doc("Kitchen")
