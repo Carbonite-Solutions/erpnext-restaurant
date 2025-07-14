@@ -20,7 +20,6 @@ class Kitchen(Document):
 					"Finished": "Completed",
 					"Delivered": "Delivered",
 				}
-
 				for row in order.entry_items:
 					if row.item_code == self.item:
 						row.status = statues[self.status]

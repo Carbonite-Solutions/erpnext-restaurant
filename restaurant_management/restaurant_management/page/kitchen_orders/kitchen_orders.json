@@ -1,0 +1,12 @@
+{
+  "doctype": "Page",
+  "title": "Kitchen Orders",
+  "name": "kitchen-orders",
+  "module": "Restaurant Management",
+  "route": "kitchen-orders",
+  "description": "Displays all Kitchen Orders in card layout.",
+  "developer_mode": 1,
+  "restrict_to_domain": "",
+  "icon": "",
+  "type": "Page"
+}
