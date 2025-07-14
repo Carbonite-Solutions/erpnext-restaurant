@@ -220,7 +220,7 @@ def get_items(start, page_length, price_list, item_group, pos_profile, item_type
     warehouse, hide_unavailable_items = frappe.db.get_value('POS Profile', pos_profile,
                                                             ['warehouse', 'hide_unavailable_items'])
     if not frappe.db.exists('Item Group', item_group):
-        item_group = frappe.db.get_value("Item Group", {"parent_item_group": ["is", "null"]}, "name")
+        item_group = frappe.db.get_value("Item Group", {"parent_item_group": ["is", "not set"]}, "name")
 
     if search_value:
         data = search_serial_or_batch_or_barcode_number(search_value)
