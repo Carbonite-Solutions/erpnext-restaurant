@@ -426,11 +426,11 @@ RestaurantObject = class RestaurantObject {
                     if (is_checked) {
                       customer_field.df.hidden = true;
                       customer_field.refresh();
-                      dialog.set_value("customer", RM.direct_checkin_customer);
+                      dialog.set_value("customer", RM.pos_res_settings.direct_checkin_customer);
                     } else {
                       customer_field.df.hidden = false;
                       customer_field.refresh();
-                      dialog.set_value("customer", null);
+                      dialog.set_value("customer", "");
                     }
                   }
                 },
