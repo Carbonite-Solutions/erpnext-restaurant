@@ -59,7 +59,8 @@ class Kitchen(Document):
 				se_transfer_doc = frappe.get_doc(se_transfer_dict)
 				se_transfer_doc.save()
 				se_transfer_doc.submit()
-
+    
+			if wo_doc.status == "Completed" and self.status == "Delivered":
 				close_work_order(self.work_order, "Closed")
 
 			if wo_doc.status == "In Process" and self.status == "Hold":
