@@ -732,7 +732,8 @@ class TableOrder(Document):
                 item.status = "Sent"
                 item.ordered_time = frappe.utils.now_datetime()
                 if not i.work_order:
-                    if i.qty > 0 and i.item_code and frappe.db.exists("BOM", {"item": i.item_code}):
+                    item_category = frappe.db.get_value("Item", i.item_code, "custom_item_category")
+                    if i.qty > 0 and i.item_code and frappe.db.exists("BOM", {"item": i.item_code}) and item_category == "Kitchen":
                         bom = frappe.db.get_value("BOM", {"item": i.item_code}, "name")
                         wo_doc = make_work_order(bom, item=i.item_code, qty=i.qty)
                         wo_doc.fg_warehouse = t_warehouse
@@ -746,6 +747,13 @@ class TableOrder(Document):
                         kitchen.table_order = self.name
                         kitchen.work_order = wo_doc.name
                         kitchen.save()
+                    elif i.qty > 0 and i.item_code and item_category == "Bar":
+                        bar = frappe.new_doc("Bar")
+                        bar.item = i.item_code
+                        bar.item_notes = i.notes
+                        bar.qty = i.qty
+                        bar.table_order = self.name
+                        bar.save()
                 else:
                     frappe.db.set_value("Work Order", i.work_order, "qty", i.qty)
                         
