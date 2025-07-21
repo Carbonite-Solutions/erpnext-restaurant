@@ -8,6 +8,18 @@ from erpnext.manufacturing.doctype.work_order.work_order import (make_stock_entr
 
 class Kitchen(Document):
 	def before_save(self):
+		if self.status =="Finished" and not self.notification_sent:
+			table_order = frappe.get_doc("Table Order", self.table_order)
+			table_description = table_order.table_description
+			room_description = table_order.room_description
+			frappe.publish_realtime('table_order_completed', {
+                        'Table': table_description,
+                        "Room": room_description,
+                        "Item": self.item,
+						"Quantity": self.qty,
+						"Status": self.status
+                    })
+			self.notification_sent = 1
 		previous = self.get_doc_before_save()
 		if previous and self.status != previous.status:
 			if self.table_order and self.item:

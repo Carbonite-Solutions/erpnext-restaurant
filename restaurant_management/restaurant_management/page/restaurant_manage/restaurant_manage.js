@@ -213,6 +213,109 @@ RestaurantManage = class RestaurantManage {
         this.check_in = new CheckIn({})//.show();
       }
     });
+    let completedOrders = [];
+
+    frappe.realtime.on('table_order_completed', data => {
+        console.log("Order completed!", data);
+        completedOrders.push(data);
+    });
+
+    if (!document.querySelector('#order-status-sidebar')) {
+        const sidebar = document.createElement('div');
+        sidebar.id = 'order-status-sidebar';
+        sidebar.style.cssText = `
+            position: fixed;
+            top: 1;
+            right: -400px;
+            width: 400px;
+            height: 100%;
+            background: white;
+            box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+            overflow-y: auto;
+            transition: right 0.3s ease-in-out;
+            z-index: 9999;
+            padding: 0 20px 10px;
+        `;
+        sidebar.innerHTML = `
+            <style>
+              #order-status-header {
+                  position: sticky;
+                  top: 0;
+                  background: white;
+                  z-index: 1;
+                  padding-bottom: 10px;
+                  margin-bottom: 10px;
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  border-bottom: 1px solid #eee;
+              }
+              #order-status-header h3 {
+                  margin: 0;
+                  font-size: 18px;
+              }
+              #close-order-sidebar {
+                  border: none; 
+                  background: transparent; 
+                  font-size: 18px; 
+                  cursor: pointer;
+              }
+              .order-item-summary {
+                  border-bottom: 1px solid #eee;
+                  margin-bottom: 8px;
+                  padding-bottom: 4px;
+                  font-size: 14px;
+                  color: #333;
+              }
+              .status-completed {
+                  color: green;
+                  font-weight: 600;
+              }
+              #order-status-content {
+              margin-bottom: 129px;
+              }
+            </style>
+            <div id="order-status-header">
+                <h3>Order Completed Details</h3>
+                <button id="close-order-sidebar">✖</button>
+            </div>
+            <div id="order-status-content" style="margin-top: 10px;"></div>`;
+        document.body.appendChild(sidebar);
+
+        document.querySelector('#close-order-sidebar').addEventListener('click', () => {
+            document.querySelector('#order-status-sidebar').style.right = '-400px';
+        });
+    }
+
+    this.#components.check_status = frappe.jshtml({
+        tag: "button",
+        properties: { class: "btn btn-primary", style: "font-size: 16px; opacity: 0.8;" },
+        content: `<span class="fa fa-check"></span> ${__("Check Status")}`
+    }).on("click", () => { 
+        let content = '';
+
+        if (completedOrders.length > 0) {
+            completedOrders.forEach((order, index) => {
+                content += `
+                    <div class="order-item-summary">
+                        <strong>#${index+1}</strong> 
+                        Room: ${order.Room} |
+                        Table: ${order.Table} | 
+                        Item: ${order.Item|| '-'} | 
+                        Quantity: ${order.Quantity|| '-'} |
+                        Status: <span class="${order.Status === 'Finished' ? 'status-completed' : ''}">
+                        ${order.Status || '-'}</span>
+                    </div>
+                `;
+            });
+        } else {
+            content = '<p>No completed orders yet.</p>';
+        }
+
+        document.querySelector('#order-status-content').innerHTML = content;
+        document.querySelector('#order-status-sidebar').style.right = '0';
+    });
+
 
     this.#components.edit_room = frappe.jshtml({
       tag: "button",
@@ -318,6 +421,7 @@ RestaurantManage = class RestaurantManage {
 					</div>
 					<div class="floor-map-reserve">
 						${this.components.reservation.html()}
+            ${this.components.check_status.html()}
 					</div>
 					<div class="floor-map-editor right">
 						${this.components.edit_room.html()}
