@@ -9,6 +9,7 @@
   "status",
   "item",
   "qty",
+  "notification_sent",
   "column_break_vgkb",
   "item_notes",
   "section_break_fh4z",
@@ -82,13 +83,19 @@
    "in_list_view": 1,
    "label": "Qty",
    "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "notification_sent",
+   "fieldtype": "Check",
+   "label": "Notification Sent"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-07-10 11:22:10.469430",
+ "modified": "2025-07-21 17:42:52.015434",
  "modified_by": "Administrator",
  "module": "Restaurant Management",
  "name": "Kitchen",
