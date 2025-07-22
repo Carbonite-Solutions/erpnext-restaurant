@@ -213,11 +213,43 @@ RestaurantManage = class RestaurantManage {
         this.check_in = new CheckIn({})//.show();
       }
     });
+    frappe.realtime.on('order-invoiced', data => {
+        console.log("order-invoiced", data);
+    });
+
     let completedOrders = [];
+    function updateSidebarContent() {
+        let content = '';
+
+        if (completedOrders.length > 0) {
+            completedOrders.forEach((order, index) => {
+                content += `
+                    <div class="order-item-summary">
+                        <strong>#${index+1}</strong> 
+                        Room: ${order.Room} |
+                        Table: ${order.Table} | 
+                        Item: ${order.Item|| '-'} | 
+                        Quantity: ${order.Quantity|| '-'} |
+                        Status: <span class="${order.Status === 'Finished' ? 'status-completed' : ''}">
+                        ${order.Status || '-'}</span>
+                    </div>
+                `;
+            });
+        } else {
+            content = '<p>No completed orders yet.</p>';
+        }
+
+        document.querySelector('#order-status-content').innerHTML = content;
+    }
 
     frappe.realtime.on('table_order_completed', data => {
         console.log("Order completed!", data);
         completedOrders.push(data);
+
+        const sidebar = document.querySelector('#order-status-sidebar');
+        if (sidebar && sidebar.style.right === '0px') {
+            updateSidebarContent();
+        }
     });
 
     if (!document.querySelector('#order-status-sidebar')) {
@@ -272,7 +304,7 @@ RestaurantManage = class RestaurantManage {
                   font-weight: 600;
               }
               #order-status-content {
-              margin-bottom: 129px;
+                  margin-bottom: 129px;
               }
             </style>
             <div id="order-status-header">
@@ -281,10 +313,6 @@ RestaurantManage = class RestaurantManage {
             </div>
             <div id="order-status-content" style="margin-top: 10px;"></div>`;
         document.body.appendChild(sidebar);
-
-        document.querySelector('#close-order-sidebar').addEventListener('click', () => {
-            document.querySelector('#order-status-sidebar').style.right = '-400px';
-        });
     }
 
     this.#components.check_status = frappe.jshtml({
@@ -292,30 +320,9 @@ RestaurantManage = class RestaurantManage {
         properties: { class: "btn btn-primary", style: "font-size: 16px; opacity: 0.8;" },
         content: `<span class="fa fa-check"></span> ${__("Check Status")}`
     }).on("click", () => { 
-        let content = '';
-
-        if (completedOrders.length > 0) {
-            completedOrders.forEach((order, index) => {
-                content += `
-                    <div class="order-item-summary">
-                        <strong>#${index+1}</strong> 
-                        Room: ${order.Room} |
-                        Table: ${order.Table} | 
-                        Item: ${order.Item|| '-'} | 
-                        Quantity: ${order.Quantity|| '-'} |
-                        Status: <span class="${order.Status === 'Finished' ? 'status-completed' : ''}">
-                        ${order.Status || '-'}</span>
-                    </div>
-                `;
-            });
-        } else {
-            content = '<p>No completed orders yet.</p>';
-        }
-
-        document.querySelector('#order-status-content').innerHTML = content;
+        updateSidebarContent();
         document.querySelector('#order-status-sidebar').style.right = '0';
     });
-
 
     this.#components.edit_room = frappe.jshtml({
       tag: "button",
@@ -441,7 +448,19 @@ RestaurantManage = class RestaurantManage {
 		`);
 
     this.pull_alert("left");
-  }
+    function hide_notification() {
+      document.querySelector('#order-status-sidebar').style.right = '-400px';
+    }
+    document.querySelector('#close-order-sidebar').addEventListener('click', () => {
+      hide_notification();
+    });
+
+    document.querySelector('body').addEventListener('click', (event) => {
+      hide_notification();
+    });
+    // document.querySelector("restaurant-manage").addEventListener("click", (event) => {
+    // });
+    }
 
   close_pos() {
     this.working("Checking opening entries...");

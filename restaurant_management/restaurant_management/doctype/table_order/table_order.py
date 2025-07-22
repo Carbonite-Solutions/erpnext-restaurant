@@ -30,7 +30,7 @@ class TableOrder(Document):
                     completed_flag = False
                     break
                 
-        if completed_flag:
+        if completed_flag and len(self.entry_items) > 0:
             self.status = "Completed"
 
         self.notify_status()
@@ -69,6 +69,14 @@ class TableOrder(Document):
             self.ordered_time = frappe.utils.now_datetime()
 
         self.set_default_customer()
+
+        if self.status == "Invoiced":
+            frappe.publish_realtime('order-invoiced', {
+                        "Table Order": self.name,
+                        'Table': self.table_description,
+                        "Room": self.room_description,
+                    })
+            
 
     def set_default_customer(self):
         if self.customer:
