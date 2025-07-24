@@ -14,6 +14,7 @@ class Kitchen(Document):
 			room_description = table_order.room_description
 			frappe.publish_realtime('table_order_completed', {
                         'Table': table_description,
+						"Table Order": self.table_order,
                         "Room": room_description,
                         "Item": self.item,
 						"Quantity": self.qty,
