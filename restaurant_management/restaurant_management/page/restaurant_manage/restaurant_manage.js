@@ -215,6 +215,8 @@ RestaurantManage = class RestaurantManage {
     });
     frappe.realtime.on('order-invoiced', data => {
         console.log("order-invoiced", data);
+        completedOrders = completedOrders.filter(order => order["Table Order"] !== data["Table Order"]);
+        updateSidebarContent();
     });
 
     let completedOrders = [];
