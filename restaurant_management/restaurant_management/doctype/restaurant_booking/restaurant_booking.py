@@ -35,7 +35,7 @@ class RestaurantBooking(Document):
 
 		if self.table:
 			table = frappe.get_doc("Restaurant Object", self.table)
-			if self.status not in ["Cancelled", "No Show"]:
+			if self.status not in ["Cancelled", "No Show", "Success"]:
 				if not table.is_enabled_to_reservation(self):
 					frappe.throw("Table is not available")
 				elif self.status == "Waitlisted":

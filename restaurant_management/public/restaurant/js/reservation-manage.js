@@ -114,7 +114,7 @@ class Reservation extends DeskForm {
     this.set_value("status", "Cancelled");
     this.save({
       success: () => {
-        this.reservation_manage.reload(null, true);
+        window.location.reload();
       }
     });
   }
@@ -128,10 +128,10 @@ class Reservation extends DeskForm {
   }
 
   close() {
-    this.set_value("status", "Closed");
+    this.set_value("status", "Success");
     this.save({
       success: () => {
-        this.reservation_manage.reload(null, true);
+        window.location.reload();
       }
     });
   }
