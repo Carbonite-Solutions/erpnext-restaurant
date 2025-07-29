@@ -408,3 +408,30 @@ def set_item_in_menu(item_code, in_menu):
   frappe.publish_realtime("update_menu", {"item_code": item_code, "in_menu": in_menu})
 
   return {"message": "Item added to menu successfully" if in_menu else "Item removed from menu successfully"}
+
+@frappe.whitelist()
+def get_completed_items():
+    kitchen = frappe.get_all(
+        "Kitchen",
+        filters={"status": "Finished"},
+        fields=[
+            "table_order", "item", "qty", "status",
+            "table_order.table_description", "table_order.room_description",
+            "modified"
+        ]
+    )
+    bar = frappe.get_all(
+        "Bar",
+        filters={"status": "Finished"},
+        fields=[
+            "table_order", "item", "qty", "status",
+            "table_order.table_description", "table_order.room_description",
+            "modified"
+        ]
+    )
+
+    combined_items = kitchen + bar
+
+    items = sorted(combined_items, key=lambda x: x["modified"], reverse=True)
+
+    frappe.publish_realtime('table_order_completed', {"items": items})

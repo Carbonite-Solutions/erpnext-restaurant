@@ -213,11 +213,12 @@ RestaurantManage = class RestaurantManage {
         this.check_in = new CheckIn({})//.show();
       }
     });
-    frappe.realtime.on('order-invoiced', data => {
-      console.log("order-invoiced", data);
-      completedOrders = completedOrders.filter(order => order["Table Order"] !== data["Table Order"]);
-      updateSidebarContent();
-    });
+
+    // frappe.realtime.on('order-invoiced', data => {
+    //   console.log("order-invoiced", data);
+    //   completedOrders = completedOrders.filter(order => order["Table Order"] !== data["Table Order"]);
+    //   updateSidebarContent();
+    // });
 
     let completedOrders = [];
     function updateSidebarContent() {
@@ -228,12 +229,12 @@ RestaurantManage = class RestaurantManage {
           content += `
                     <div class="order-item-summary">
                         <strong>#${index + 1}</strong> 
-                        Room: ${order.Room} |
-                        Table: ${order.Table} | 
-                        Item: ${order.Item || '-'} | 
-                        Quantity: ${order.Quantity || '-'} |
-                        Status: <span class="${order.Status === 'Finished' ? 'status-completed' : ''}">
-                        ${order.Status || '-'}</span>
+                        Room: ${order.room_description} |
+                        Table: ${order.table_description} | 
+                        Item: ${order.item || '-'} | 
+                        Quantity: ${order.qty || '-'} |
+                        Status: <span class="${order.status === 'Finished' ? 'status-completed' : ''}">
+                        ${order.status || '-'}</span>
                     </div>
                 `;
         });
@@ -245,7 +246,8 @@ RestaurantManage = class RestaurantManage {
     }
 
     frappe.realtime.on('table_order_completed', data => {
-      completedOrders.push(data);
+      completedOrders = [];
+      completedOrders = data.items;
 
       const sidebar = document.querySelector('#order-status-sidebar');
       if (sidebar && sidebar.style.right === '0px') {
@@ -461,6 +463,10 @@ RestaurantManage = class RestaurantManage {
     });
     // document.querySelector("restaurant-manage").addEventListener("click", (event) => {
     // });
+
+    frappe.call({
+      method: "restaurant_management.restaurant_management.page.restaurant_manage.restaurant_manage.get_completed_items"
+    })
   }
 
   close_pos() {

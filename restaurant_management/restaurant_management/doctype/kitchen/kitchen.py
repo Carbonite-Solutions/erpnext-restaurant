@@ -4,23 +4,11 @@
 import frappe
 from frappe.model.document import Document
 from erpnext.manufacturing.doctype.work_order.work_order import (make_stock_entry, close_work_order, stop_unstop)
+from restaurant_management.restaurant_management.page.restaurant_manage.restaurant_manage import get_completed_items
 
 
 class Kitchen(Document):
 	def before_save(self):
-		if self.status =="Finished" and not self.notification_sent:
-			table_order = frappe.get_doc("Table Order", self.table_order)
-			table_description = table_order.table_description
-			room_description = table_order.room_description
-			frappe.publish_realtime('table_order_completed', {
-                        'Table': table_description,
-						"Table Order": self.table_order,
-                        "Room": room_description,
-                        "Item": self.item,
-						"Quantity": self.qty,
-						"Status": self.status
-                    })
-			self.notification_sent = 1
 		previous = self.get_doc_before_save()
 		if previous and self.status != previous.status:
 			if self.table_order and self.item:
@@ -47,6 +35,8 @@ class Kitchen(Document):
 			self.set_work_order()
 
 	def on_update(self):
+		if self.has_value_changed("status"):
+			get_completed_items()
 		if getattr(self.flags, "submit_after_save", False):
 			if self.docstatus == 0:
 				self.submit()
