@@ -1,6 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
+ "autoname": "field:description",
  "creation": "2020-04-03 21:41:52.229718",
  "doctype": "DocType",
  "document_type": "Document",
@@ -233,7 +234,7 @@
   }
  ],
  "links": [],
- "modified": "2024-04-16 17:23:33.662750",
+ "modified": "2025-07-29 15:00:06.306195",
  "modified_by": "Administrator",
  "module": "Restaurant Management",
  "name": "Restaurant Object",
@@ -278,6 +279,7 @@
   }
  ],
  "quick_entry": 1,
+ "row_format": "Dynamic",
  "search_fields": "room_description,type,description",
  "sort_field": "modified",
  "sort_order": "DESC",
