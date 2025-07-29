@@ -214,50 +214,49 @@ RestaurantManage = class RestaurantManage {
       }
     });
     frappe.realtime.on('order-invoiced', data => {
-        console.log("order-invoiced", data);
-        completedOrders = completedOrders.filter(order => order["Table Order"] !== data["Table Order"]);
-        updateSidebarContent();
+      console.log("order-invoiced", data);
+      completedOrders = completedOrders.filter(order => order["Table Order"] !== data["Table Order"]);
+      updateSidebarContent();
     });
 
     let completedOrders = [];
     function updateSidebarContent() {
-        let content = '';
+      let content = '';
 
-        if (completedOrders.length > 0) {
-            completedOrders.forEach((order, index) => {
-                content += `
+      if (completedOrders.length > 0) {
+        completedOrders.forEach((order, index) => {
+          content += `
                     <div class="order-item-summary">
-                        <strong>#${index+1}</strong> 
+                        <strong>#${index + 1}</strong> 
                         Room: ${order.Room} |
                         Table: ${order.Table} | 
-                        Item: ${order.Item|| '-'} | 
-                        Quantity: ${order.Quantity|| '-'} |
+                        Item: ${order.Item || '-'} | 
+                        Quantity: ${order.Quantity || '-'} |
                         Status: <span class="${order.Status === 'Finished' ? 'status-completed' : ''}">
                         ${order.Status || '-'}</span>
                     </div>
                 `;
-            });
-        } else {
-            content = '<p>No completed orders yet.</p>';
-        }
+        });
+      } else {
+        content = '<p>No completed orders yet.</p>';
+      }
 
-        document.querySelector('#order-status-content').innerHTML = content;
+      document.querySelector('#order-status-content').innerHTML = content;
     }
 
     frappe.realtime.on('table_order_completed', data => {
-        console.log("Order completed!", data);
-        completedOrders.push(data);
+      completedOrders.push(data);
 
-        const sidebar = document.querySelector('#order-status-sidebar');
-        if (sidebar && sidebar.style.right === '0px') {
-            updateSidebarContent();
-        }
+      const sidebar = document.querySelector('#order-status-sidebar');
+      if (sidebar && sidebar.style.right === '0px') {
+        updateSidebarContent();
+      }
     });
 
     if (!document.querySelector('#order-status-sidebar')) {
-        const sidebar = document.createElement('div');
-        sidebar.id = 'order-status-sidebar';
-        sidebar.style.cssText = `
+      const sidebar = document.createElement('div');
+      sidebar.id = 'order-status-sidebar';
+      sidebar.style.cssText = `
             position: fixed;
             top: 1;
             right: -400px;
@@ -270,7 +269,7 @@ RestaurantManage = class RestaurantManage {
             z-index: 9999;
             padding: 0 20px 10px;
         `;
-        sidebar.innerHTML = `
+      sidebar.innerHTML = `
             <style>
               #order-status-header {
                   position: sticky;
@@ -314,16 +313,16 @@ RestaurantManage = class RestaurantManage {
                 <button id="close-order-sidebar">✖</button>
             </div>
             <div id="order-status-content" style="margin-top: 10px;"></div>`;
-        document.body.appendChild(sidebar);
+      document.body.appendChild(sidebar);
     }
 
     this.#components.check_status = frappe.jshtml({
-        tag: "button",
-        properties: { class: "btn btn-primary", style: "font-size: 16px; opacity: 0.8;" },
-        content: `<span class="fa fa-check"></span> ${__("Check Status")}`
-    }).on("click", () => { 
-        updateSidebarContent();
-        document.querySelector('#order-status-sidebar').style.right = '0';
+      tag: "button",
+      properties: { class: "btn btn-primary", style: "font-size: 16px; opacity: 0.8;" },
+      content: `<span class="fa fa-check"></span> ${__("Check Status")}`
+    }).on("click", () => {
+      updateSidebarContent();
+      document.querySelector('#order-status-sidebar').style.right = '0';
     });
 
     this.#components.edit_room = frappe.jshtml({
@@ -348,7 +347,7 @@ RestaurantManage = class RestaurantManage {
       properties: { class: "btn btn-default btn-flat" },
       content: `<span class="fa fa-bars"></span> ${__("Menu")}`
     }).on("click", () => {
-      if(!this.menu_manage){
+      if (!this.menu_manage) {
         this.menu_manage = new MenuManage();
       }
 
@@ -462,7 +461,7 @@ RestaurantManage = class RestaurantManage {
     });
     // document.querySelector("restaurant-manage").addEventListener("click", (event) => {
     // });
-    }
+  }
 
   close_pos() {
     this.working("Checking opening entries...");
@@ -490,7 +489,7 @@ RestaurantManage = class RestaurantManage {
         method: `${this.url_manage}get_rooms`
       }).then(r => {
         Object.values(this.objects).forEach(obj => {
-          if (obj?.remove) obj.remove(); 
+          if (obj?.remove) obj.remove();
         });
 
         this.objects = {};
@@ -511,7 +510,7 @@ RestaurantManage = class RestaurantManage {
     method = this.url_manage + method;
     this.working("Processing");
     return new Promise(res => {
-      frappe.call({method, args}).then(r => {
+      frappe.call({ method, args }).then(r => {
         r.message && this.ready(r.message);
         res(r.message);
       });
@@ -757,7 +756,7 @@ RestaurantManage = class RestaurantManage {
 
     frappe.realtime.on("update_menu", (r) => {
       const items = this.menu.items
-      r.in_menu ? (!items.includes(r.item) && items.push(r.item)) : (items = items.filter(i => i !== r.item)); 
+      r.in_menu ? (!items.includes(r.item) && items.push(r.item)) : (items = items.filter(i => i !== r.item));
 
       this.menu.items = items;
     });
