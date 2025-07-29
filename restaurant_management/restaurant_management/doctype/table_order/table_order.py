@@ -70,12 +70,12 @@ class TableOrder(Document):
 
         self.set_default_customer()
 
-        if self.status == "Invoiced":
-            frappe.publish_realtime('order-invoiced', {
-                        "Table Order": self.name,
-                        'Table': self.table_description,
-                        "Room": self.room_description,
-                    })
+        # if self.status == "Invoiced":
+        #     frappe.publish_realtime('order-invoiced', {
+        #                 "Table Order": self.name,
+        #                 'Table': self.table_description,
+        #                 "Room": self.room_description,
+        #             })
             
 
     def set_default_customer(self):

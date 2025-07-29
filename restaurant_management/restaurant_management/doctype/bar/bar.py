@@ -3,6 +3,7 @@
 
 import frappe
 from frappe.model.document import Document
+from restaurant_management.restaurant_management.page.restaurant_manage.restaurant_manage import get_completed_items
 
 
 class Bar(Document):
@@ -25,3 +26,7 @@ class Bar(Document):
 						break
 
 				order.save()
+
+	def on_update(self):
+		if self.has_value_changed("status"):
+			get_completed_items()
