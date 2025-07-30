@@ -43,8 +43,12 @@ class KitchenOrdersPage {
                     return '#fd7e14';
                 case 'order placed':
                     return '#0d6efd';
+                case 'hold':
+                    return '#a50dfdff';
+                case 'cancelled':
+                    return '#f1d905ff';
                 default:
-                    return '#6c757d';
+                    return '#33c2e6ff';
             }
         };
 
@@ -105,6 +109,8 @@ class KitchenOrdersPage {
                                 <option value="In Progress" ${order.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
                                 <option value="Finished" ${order.status === 'Finished' ? 'selected' : ''}>Finished</option>
                                 <option value="Delivered" ${order.status === 'Delivered' ? 'selected' : ''}>Delivered</option>
+                                <option value="Hold" ${order.status === 'Hold' ? 'selected' : ''}>Hold</option>
+                                <option value="Cancelled" ${order.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
                             </select>
                         </p>
 
