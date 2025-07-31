@@ -233,7 +233,8 @@ RestaurantManage = class RestaurantManage {
                         Table: ${order.table_description} | 
                         Item: ${order.item || '-'} | 
                         Quantity: ${order.qty || '-'} |
-                        Status: <span class="${order.status === 'Finished' ? 'status-completed' : ''}">
+                        Type: ${order.item_type || '-'} |
+                        Status: <span class="${order.status === 'Completed' ? 'status-completed' : ''}">
                         ${order.status || '-'}</span>
                     </div>
                 `;
@@ -459,10 +460,11 @@ RestaurantManage = class RestaurantManage {
     });
 
     document.querySelector('body').addEventListener('click', (event) => {
+      if (event.target.closest('#order-status-sidebar')) {
+        return;
+      }
       hide_notification();
     });
-    // document.querySelector("restaurant-manage").addEventListener("click", (event) => {
-    // });
 
     frappe.call({
       method: "restaurant_management.restaurant_management.page.restaurant_manage.restaurant_manage.get_completed_items"

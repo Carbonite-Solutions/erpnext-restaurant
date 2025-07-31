@@ -329,8 +329,8 @@ class RestaurantObject(Document):
             last_status = frappe.db.get_value(
                 "Table Order", {"name": identifier}, "status")
         else:
-            last_status = frappe.db.get_value(
-                "Order Entry Item", {"identifier": identifier}, "status")
+            last_status, food_order = frappe.db.get_value(
+                "Order Entry Item", {"identifier": identifier}, ["status", "food_order"])
 
         status = self.next_status(last_status)
 
@@ -346,6 +346,8 @@ class RestaurantObject(Document):
         else:
             frappe.db.set_value("Order Entry Item", {
                 "identifier": identifier}, "status", status)
+
+            order.change_kitchen_status(status=status, order_name=food_order)
 
         order.reload()
         items = None

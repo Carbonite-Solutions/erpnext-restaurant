@@ -2,14 +2,14 @@
  "actions": [],
  "allow_rename": 1,
  "autoname": "format:Order-{YY}-{####}",
- "creation": "2025-06-17 12:33:48.317587",
+ "creation": "2025-07-31 12:56:04.305879",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
   "status",
   "item",
+  "item_type",
   "qty",
-  "notification_sent",
   "column_break_vgkb",
   "item_notes",
   "section_break_fh4z",
@@ -19,43 +19,13 @@
  ],
  "fields": [
   {
-   "fieldname": "section_break_fh4z",
-   "fieldtype": "Section Break"
-  },
-  {
-   "fieldname": "amended_from",
-   "fieldtype": "Link",
-   "label": "Amended From",
-   "no_copy": 1,
-   "options": "Kitchen",
-   "print_hide": 1,
-   "read_only": 1,
-   "search_index": 1
-  },
-  {
    "default": "Order Placed",
    "fieldname": "status",
-   "fieldtype": "Select",
+   "fieldtype": "Link",
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Status",
-   "options": "Order Placed\nIn Progress\nFinished\nDelivered\nHold\nCancelled"
-  },
-  {
-   "fieldname": "work_order",
-   "fieldtype": "Link",
-   "label": "Work Order",
-   "options": "Work Order",
-   "read_only": 1
-  },
-  {
-   "fieldname": "table_order",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "in_standard_filter": 1,
-   "label": "Table Order",
-   "options": "Table Order",
-   "read_only": 1
+   "options": "Status Order PC"
   },
   {
    "fieldname": "item",
@@ -64,6 +34,13 @@
    "in_standard_filter": 1,
    "label": "Item",
    "options": "Item",
+   "read_only": 1
+  },
+  {
+   "fieldname": "qty",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Qty",
    "read_only": 1
   },
   {
@@ -78,27 +55,61 @@
    "read_only": 1
   },
   {
-   "fieldname": "qty",
-   "fieldtype": "Float",
+   "fieldname": "section_break_fh4z",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "table_order",
+   "fieldtype": "Link",
    "in_list_view": 1,
-   "label": "Qty",
+   "in_standard_filter": 1,
+   "label": "Table Order",
+   "options": "Table Order",
    "read_only": 1
   },
   {
-   "default": "0",
-   "fieldname": "notification_sent",
-   "fieldtype": "Check",
-   "label": "Notification Sent"
+   "fieldname": "work_order",
+   "fieldtype": "Link",
+   "label": "Work Order",
+   "options": "Work Order",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Kitchen",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Kitchen",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "item_type",
+   "fieldtype": "Select",
+   "label": "Item Type",
+   "options": "Kitchen\nBar",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-07-21 17:42:52.015434",
+ "modified": "2025-07-31 12:57:35.584782",
  "modified_by": "Administrator",
  "module": "Restaurant Management",
- "name": "Kitchen",
+ "name": "Food Order",
  "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
@@ -116,6 +127,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []
