@@ -77,7 +77,6 @@ class TableOrder(Document):
         #                 "Room": self.room_description,
         #             })
             
-
     def set_default_customer(self):
         if self.customer:
             return
@@ -87,6 +86,12 @@ class TableOrder(Document):
         else:
             self.customer = frappe.db.get_value(
                 'POS Profile', self.pos_profile, 'customer')
+            
+    @frappe.whitelist()
+    def change_kitchen_status(self, status, order_name):
+        order = frappe.get_doc("Food Order", order_name)
+        order.status = status
+        order.save(ignore_permissions=True)
 
     @property
     def short_name(self):
@@ -739,29 +744,27 @@ class TableOrder(Document):
 
                 item.status = "Sent"
                 item.ordered_time = frappe.utils.now_datetime()
+                item_category = frappe.db.get_value("Item", i.item_code, "custom_item_category")
                 if not i.work_order:
-                    item_category = frappe.db.get_value("Item", i.item_code, "custom_item_category")
-                    if i.qty > 0 and i.item_code and frappe.db.exists("BOM", {"item": i.item_code}) and item_category == "Kitchen":
-                        bom = frappe.db.get_value("BOM", {"item": i.item_code}, "name")
-                        wo_doc = make_work_order(bom, item=i.item_code, qty=i.qty)
-                        wo_doc.fg_warehouse = t_warehouse
-                        wo_doc.wip_warehouse = wip_warehouse
-                        wo_doc.save()
-                        wo_doc.submit()
-                        kitchen = frappe.new_doc("Kitchen")
-                        kitchen.item = i.item_code
-                        kitchen.item_notes = i.notes
-                        kitchen.qty = i.qty
-                        kitchen.table_order = self.name
-                        kitchen.work_order = wo_doc.name
-                        kitchen.save()
-                    elif i.qty > 0 and i.item_code and item_category == "Bar":
-                        bar = frappe.new_doc("Bar")
-                        bar.item = i.item_code
-                        bar.item_notes = i.notes
-                        bar.qty = i.qty
-                        bar.table_order = self.name
-                        bar.save()
+                    if i.qty > 0 and i.item_code:
+                        wo_doc = None
+                        if item_category == "Kitchen" and frappe.db.exists("BOM", {"item": i.item_code}):
+                            bom = frappe.db.get_value("BOM", {"item": i.item_code}, "name")
+                            wo_doc = make_work_order(bom, item=i.item_code, qty=i.qty)
+                            wo_doc.fg_warehouse = t_warehouse
+                            wo_doc.wip_warehouse = wip_warehouse
+                            wo_doc.save()
+                            wo_doc.submit()
+                        food_order = frappe.new_doc("Food Order")
+                        food_order.item = i.item_code
+                        food_order.item_notes = i.notes
+                        food_order.qty = i.qty
+                        food_order.status = item.status
+                        food_order.table_order = self.name
+                        food_order.work_order = wo_doc.name if wo_doc else ""
+                        food_order.item_type = item_category
+                        food_order.save()
+                        item.food_order = food_order.name
                 else:
                     frappe.db.set_value("Work Order", i.work_order, "qty", i.qty)
                         
