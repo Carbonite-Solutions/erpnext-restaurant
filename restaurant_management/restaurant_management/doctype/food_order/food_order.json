@@ -14,8 +14,7 @@
   "item_notes",
   "section_break_fh4z",
   "table_order",
-  "work_order",
-  "amended_from"
+  "work_order"
  ],
  "fields": [
   {
@@ -75,26 +74,6 @@
    "read_only": 1
   },
   {
-   "fieldname": "amended_from",
-   "fieldtype": "Link",
-   "label": "Amended From",
-   "no_copy": 1,
-   "options": "Kitchen",
-   "print_hide": 1,
-   "read_only": 1,
-   "search_index": 1
-  },
-  {
-   "fieldname": "amended_from",
-   "fieldtype": "Link",
-   "label": "Amended From",
-   "no_copy": 1,
-   "options": "Kitchen",
-   "print_hide": 1,
-   "read_only": 1,
-   "search_index": 1
-  },
-  {
    "fieldname": "item_type",
    "fieldtype": "Select",
    "label": "Item Type",
@@ -106,7 +85,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-07-31 12:57:35.584782",
+ "modified": "2025-08-05 10:40:55.790196",
  "modified_by": "Administrator",
  "module": "Restaurant Management",
  "name": "Food Order",

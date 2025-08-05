@@ -62,7 +62,7 @@ class CheckIn extends DeskForm {
 
   make_actions() {
     [
-      { name: "edit_table", icon: "fa fa-refresh", label: "Table", type: "primary" },
+      { name: "edit_table", icon: "fa fa-refresh", label: "Table", type: "info" },
       { name: "check_in", label: "Check In", type: "success", icon: "fa fa-check-square-o" },
       { name: "cancel", label: "Cancel", type: "danger", confirm: true, icon: "fa fa-times" },
       { name: "close", label: "Finish", type: "warning", confirm: true, icon: "fa fa-check" },

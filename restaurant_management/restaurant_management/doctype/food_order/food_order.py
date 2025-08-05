@@ -27,7 +27,6 @@ class FoodOrder(Document):
 
 				# order.save()
 
-		
 			if self.status == "Delivered":
 				self.flags.submit_after_save = True
 
@@ -62,7 +61,7 @@ class FoodOrder(Document):
 				se_transfer_doc = frappe.get_doc(se_transfer_dict)
 				se_transfer_doc.save()
 				se_transfer_doc.submit()
-    
+
 			if wo_doc.status == "Completed" and self.status == "Delivered":
 				close_work_order(self.work_order, "Closed")
 
@@ -72,3 +71,45 @@ class FoodOrder(Document):
 			if self.status == "Cancelled":
 				if wo_doc.status != "Stopped":
 					stop_unstop(self.work_order, "Stopped")
+
+			# Determine overall status from Food Orders
+		linked_food_orders = frappe.get_all('Food Order', filters={'work_order': self.work_order}, fields=['status'])
+
+		status_mapping = {
+			"Attending": "In Process",
+			"Sent": "In Process",
+			"Processing": "In Process",
+			"Complete": "Completed"
+		}
+
+		child_statuses = []
+		for fo in linked_food_orders:
+			mapped_status = status_mapping.get(fo.status, fo.status)
+			child_statuses.append(mapped_status)
+
+		# Get Work Order Doc
+		wo_doc = frappe.get_doc("Work Order", self.work_order)
+
+		# Calculate Remaining Quantities
+		remaining_material_qty = wo_doc.qty - wo_doc.material_transferred_for_manufacturing
+		remaining_production_qty = wo_doc.qty - wo_doc.produced_qty
+
+		# Trigger Stock Entries based on computed statuses
+
+		if any(status == "In Process" for status in child_statuses):
+			if remaining_material_qty > 0:
+				# Material Transfer Entry (only if remaining qty is available)
+				se_transfer_dict = make_stock_entry(self.work_order, purpose="Material Transfer for Manufacture", qty=self.qty)
+				se_transfer_doc = frappe.get_doc(se_transfer_dict)
+				se_transfer_doc.save()
+				se_transfer_doc.submit()
+
+		if all(status == "Completed" for status in child_statuses):
+			if remaining_production_qty > 0:
+				# Manufacture Entry (only if remaining production qty is available)
+				se_manufacture_dict = make_stock_entry(self.work_order, purpose="Manufacture", qty=self.qty)
+				se_manufacture_doc = frappe.get_doc(se_manufacture_dict)
+				se_manufacture_doc.save()
+				se_manufacture_doc.submit()
+			else:
+				frappe.msgprint("All items have already been manufactured for this Work Order.")

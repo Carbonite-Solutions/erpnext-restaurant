@@ -176,7 +176,7 @@ class PayForm extends DeskForm {
       { name: "save", label: "Save", type: "success" },
       { name: "send_order", label: "Order", type: "success", icon: "fa fa-cutlery" },
       { name: "cancel", label: "Cancel", type: "danger", icon: "fa fa-times" },
-      { name: "pay", label: "Pay", type: "primary", icon: "fa fa-money", confirm: !RM.restrictions.to_pay ? DOUBLE_CLICK : null },
+      { name: "pay", label: "Pay", type: "info", icon: "fa fa-money", confirm: !RM.restrictions.to_pay ? DOUBLE_CLICK : null },
     ].forEach(action => {
       this.add_action(action, () => {
         this[action.name]();
@@ -433,4 +433,13 @@ class PayForm extends DeskForm {
       this.actions.pay.val(__("Pay"));
     }
   }
+  
+  hide() {
+    super.hide && super.hide();
+
+    // Force remove backdrop and modal-open class
+    $('.modal-backdrop').remove();
+    $('body').removeClass('modal-open');
+}
+
 }
