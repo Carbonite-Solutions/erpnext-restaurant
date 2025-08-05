@@ -433,4 +433,13 @@ class PayForm extends DeskForm {
       this.actions.pay.val(__("Pay"));
     }
   }
+  
+  hide() {
+    super.hide && super.hide();
+
+    // Force remove backdrop and modal-open class
+    $('.modal-backdrop').remove();
+    $('body').removeClass('modal-open');
+}
+
 }
