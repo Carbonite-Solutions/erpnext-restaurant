@@ -49,12 +49,46 @@ ProcessManage = class ProcessManage {
   }
 
   make_dom() {
-    this.modal.container.css({ "padding": "10px" })
-    this.modal.container.empty().append(this.template());
-    this.modal.title_container.empty().append(
-      RMHelper.return_main_button(this.title, () => this.modal.hide()).html()
-    );
-  }
+  const style = `
+    <style>
+
+      .widget.links-widget-box {
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        box-shadow: 5px 5px 5px rgba(0,0,0,0.05);
+      }
+      .widget-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #e0e0e0;
+        padding-bottom: 6px;
+        margin-bottom: 10px;
+      }
+
+      .status-label {
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-size: 13px;
+        font-weight: 500;
+        color: white;
+      }
+
+      .ellipsis {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    </style>
+  `;
+
+  this.modal.container.css({ "padding": "10px" })
+  this.modal.container.empty().append(style).append(this.template());
+  this.modal.title_container.empty().append(
+    RMHelper.return_main_button(this.title, () => this.modal.hide()).html()
+  );
+}
+
 
   template() {
     return `
