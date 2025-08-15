@@ -12,7 +12,7 @@ import json
 from restaurant_management.restaurant_management.page.restaurant_manage.restaurant_manage import RestaurantManage
 from erpnext.manufacturing.doctype.work_order.work_order import make_work_order
 
-status_attending = "Attending"
+status_draft = "Draft"
 
 
 class TableOrder(Document):
@@ -106,7 +106,7 @@ class TableOrder(Document):
     @property
     def products_not_ordered_count(self):
         return frappe.db.count("Order Entry Item", filters={
-            "parenttype": "Table Order", "parent": self.name, "status": status_attending
+            "parenttype": "Table Order", "parent": self.name, "status": status_draft
         })
 
     @property
@@ -451,7 +451,7 @@ class TableOrder(Document):
         )
 
         if self.status == "Opened":
-            self.status = "Attending"
+            self.status = "Draft"
             self.save()
 
         action = self.update_item(item)
@@ -520,7 +520,7 @@ class TableOrder(Document):
                 amount=invoice.grand_total,
                 discount_percentage=item.discount_percentage,
                 discount_amount=item.discount_amount,
-                status="Attending" if entry["status"] in ["Pending", "", None] else entry["status"],
+                status="Draft" if entry["status"] in ["Pending", "", None] else entry["status"],
                 identifier=entry["identifier"],
                 notes=entry["notes"],
                 room=self.room,
@@ -584,7 +584,7 @@ class TableOrder(Document):
                 amount=item.amount,
                 discount_percentage=item.discount_percentage,
                 discount_amount=item.discount_amount,
-                status="Attending" if entry_item["status"] in [
+                status="Draft" if entry_item["status"] in [
                     "Pending", "", None] else entry_item["status"],
                 identifier=entry_item["identifier"],
                 notes=entry_item["notes"],
@@ -660,7 +660,7 @@ class TableOrder(Document):
                 status=self.status,
                 short_name=self.short_name,
                 items_count=self.items_count,
-                attending_status=status_attending,
+                draft=status_draft,
                 products_not_ordered=self.products_not_ordered_count,
                 tax=self.tax,
                 amount=self.amount,
@@ -739,7 +739,7 @@ class TableOrder(Document):
         t_warehouse = pos_settings.target_warehouse
         for i in self.entry_items:
             item = frappe.get_doc("Order Entry Item", {"identifier": i.identifier})
-            if item.status == status_attending:
+            if item.status == status_draft:
                 items_to_return.append(i.identifier)
 
                 item.status = "Sent"
