@@ -137,41 +137,76 @@ class Reservation extends DeskForm {
   }
 
   check_in() {
-    const [current_time, reservation_time, reservation_end_time] = [
-      , ...this.get_value(["reservation_time", "reservation_end_time"])
-    ].map(time => moment(time).format("YYYY-MM-DD HH:mm:ss"));
+  const [current_time, reservation_time, reservation_end_time] = [
+    , ...this.get_value(["reservation_time", "reservation_end_time"])
+  ].map(time => moment(time).format("YYYY-MM-DD HH:mm:ss"));
 
-    const [room, table, reservation_status] = this.get_value(["room", "table", "status"]);
+  const [room, table, reservation_status] = this.get_value(["room", "table", "status"]);
 
-    const check_in = () => {
-      this.save({
-        success: () => {
-          if (table && table.length) {
-            RM.navigate_room = room;
-            RM.navigate_table = table;
-            window.location.reload();
-          } else {
-            this.edit_table();
-          }
+  const check_in = () => {
+    this.save({
+      success: () => {
+        if (table && table.length) {
+          RM.navigate_room = room;
+          RM.navigate_table = table;
+          window.location.reload();
+        } else {
+          this.edit_table();
         }
+      }
+    });
+  };
+
+
+  frappe.db.get_list("Restaurant Object", {
+    fields: ["name", "customer", "description"],
+    filters: {
+      description: table
+    }
+  }).then(objs => {
+    if (objs.length > 0 && objs[0].customer) {
+      frappe.msgprint({
+        title: __("Table Not Available"),
+        message: __("This table is already occupied by another customer."),
+        indicator: "red"
       });
+      return; 
     }
 
-    if (!((current_time >= reservation_time && current_time <= reservation_end_time) || reservation_status === "Waitlisted")) {
-      if (table && table.length > 0) {
-        frappe.confirm(
-          'Reservation time is not in range. Do you want to continue?',
-          () => {
-            this.set_value("status", "Waitlisted");
-            check_in();
-          },
-        );
+    frappe.db.get_list("Restaurant Booking", {
+      fields: ["name", "customer", "status", "reservation_time", "reservation_end_time"],
+      filters: {
+        table: table,
+        status: "Success",
+        reservation_time: ["<=", reservation_end_time],
+        reservation_end_time: [">=", reservation_time]
+      }
+    }).then(existing => {
+      if (existing.length > 0) {
+        frappe.msgprint({
+          title: __("Table Not Available"),
+          message: __("This table already has a successful reservation during this time."),
+          indicator: "red"
+        });
         return;
       }
-    }
 
-    check_in();
-  }
+      if (!((current_time >= reservation_time && current_time <= reservation_end_time) || reservation_status === "Waitlisted")) {
+        if (table && table.length > 0) {
+          frappe.confirm(
+            'Reservation time is not in range. Do you want to continue?',
+            () => {
+              this.set_value("status", "Waitlisted");
+              check_in();
+            },
+          );
+          return;
+        }
+      }
+      check_in();
+    });
+  });
+}
 
   edit_table() {
     RM.reservation = this;

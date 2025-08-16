@@ -543,43 +543,41 @@ class RestaurantObject(Document):
 
     def is_enabled_to_reservation(self, reservation=None):
         if reservation is not None:
-            reservations = frappe.db.count("Restaurant Booking", filters=dict(
-                table=self.name,
-                status=("in", ("Open", "Waitlisted")),
-                reservation_end_time=(">", get_datetime(get_datetime(reservation.reservation_time) - timedelta(minutes=30))),
-                reservation_time=("<", get_datetime(get_datetime(
-                    reservation.reservation_end_time) + timedelta(minutes=30))),
-                name=("!=", reservation.name)
-            )) == 0
+            # Check for overlapping reservations
+            overlapping_reservations = frappe.db.count("Restaurant Booking", filters=[
+                ["table", "=", self.name],
+                ["status", "in", ["Open", "Waitlisted"]],
+                ["name", "!=", reservation.name],
+                ["reservation_time", "<", get_datetime(reservation.reservation_end_time)],
+                ["reservation_end_time", ">", get_datetime(reservation.reservation_time)]
+            ])
 
-            if reservations == 0:
-                return True
+            if overlapping_reservations > 0:
+                return False
 
-            orders = frappe.get_list("Table Order", fields=["customer","creation"], filters={
-                "table": self.name,
-                "show_in_pos": 1,
-                "status": ("not in", ["Cancelled", "Invoiced"])
-            })
+            # Check for active orders during the reservation period
+            orders = frappe.get_list("Table Order", fields=["customer", "creation"], filters=[
+                ["table", "=", self.name],
+                ["show_in_pos", "=", 1],
+                ["status", "not in", ["Cancelled", "Invoiced"]],
+                ["creation", "<", get_datetime(reservation.reservation_end_time)],
+                ["modified", ">", get_datetime(reservation.reservation_time)]
+            ])
 
-            if self.orders_count > 0:
-                if len(orders) > 0:
-                    orders = sorted(orders, key=lambda x: x["creation"])
-                    last_order = orders[-1]
-
-                    if last_order:
-                        order_creation = get_datetime(last_order.creation)
-                        reservation_time = get_datetime(get_datetime(reservation.reservation_time) - timedelta(minutes=30))
-                        reservation_end_time = get_datetime(get_datetime(reservation.reservation_end_time) + timedelta(minutes=30))
-
-                        if order_creation > reservation_time and order_creation < reservation_end_time:
-                            frappe.throw(_("You can't set {0} in table {1} because there is an active order for {2} for reservation time").format(reservation.customer, self.description, last_order.customer))
+            if orders:
+                orders = sorted(orders, key=lambda x: x["creation"])
+                last_order = orders[-1]
+                frappe.throw(_("You can't reserve this table for {0} because there's an active order for {1} during this time period").format(
+                    reservation.customer, last_order.customer))
+                
             return True
         else:
-            return frappe.db.count("Restaurant Booking", filters=dict(
-                table=self.name,
-                status=("in", ("Open", "Waitlisted")),
-                reservation_time=(">", get_datetime(get_datetime() - timedelta(minutes=30)))
-            )) == 0
+            return frappe.db.count("Restaurant Booking", filters=[
+                ["table", "=", self.name],
+                ["status", "in", ["Open", "Waitlisted"]],
+                ["reservation_time", "<", get_datetime() + timedelta(minutes=30)],
+                ["reservation_end_time", ">", get_datetime() - timedelta(minutes=30)]
+            ]) == 0
     
     def current_reservation(self, field):        
         return frappe.db.get_value("Restaurant Booking", dict(
