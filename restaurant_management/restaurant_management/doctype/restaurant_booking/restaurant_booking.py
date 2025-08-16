@@ -7,7 +7,7 @@ import frappe
 from frappe.model.document import Document
 from datetime import timedelta
 from frappe.utils import cint, flt, get_datetime, datetime, date_diff, today
-
+from frappe import _
 class RestaurantBooking(Document):
 	def set_reservation_end_time(self):
 		if not self.reservation_end_time:
@@ -37,7 +37,28 @@ class RestaurantBooking(Document):
 			table = frappe.get_doc("Restaurant Object", self.table)
 			if self.status not in ["Cancelled", "No Show", "Success"]:
 				if not table.is_enabled_to_reservation(self):
-					frappe.throw("Table is not available")
+					conflicting_reservation = frappe.get_all(
+						"Restaurant Booking",
+						filters=[
+							["table", "=", self.table],
+							["status", "in", ["Open", "Waitlisted"]],
+							["name", "!=", self.name],
+							["reservation_time", "<", get_datetime(self.reservation_end_time)],
+							["reservation_end_time", ">", get_datetime(self.reservation_time)]
+						],
+						fields=["customer", "reservation_time", "reservation_end_time"],
+						limit=1
+					)
+					
+					if conflicting_reservation:
+						conf = conflicting_reservation[0]
+						frappe.throw(_("This table is already reserved for {0} from {1} to {2}").format(
+							conf.customer,
+							frappe.utils.format_datetime(conf.reservation_time),
+							frappe.utils.format_datetime(conf.reservation_end_time)
+						))
+					else:
+						frappe.throw("Table is not available for reservation during this time period")
 				elif self.status == "Waitlisted":
 					table.customer = self.customer
 			else:
