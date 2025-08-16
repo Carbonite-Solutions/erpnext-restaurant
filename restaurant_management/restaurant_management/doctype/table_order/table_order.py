@@ -200,25 +200,33 @@ class TableOrder(Document):
         if status is not None:
             RestaurantManage.production_center_notify(status)
 
-    def make_invoice(self, mode_of_payment):
+    def make_invoice(self, **kwargs):
+        mode_of_payment = kwargs.get("mode_of_payment")
+        split_type = kwargs.get("split_type")
+
         if self.link_invoice:
-            return frappe.throw(_("The order has been invoiced"))
+            frappe.throw(_("The order has been invoiced"))
 
-        entry_items = {
-            item.identifier: item.as_dict() for item in self.entry_items
-        }
-
-        if len(entry_items) == 0:
+        entry_items = {item.identifier: item.as_dict() for item in self.entry_items}
+        if not entry_items:
             frappe.throw(_("There is not Item in this Order"))
 
         invoice = self.get_invoice(entry_items, True)
-
         invoice.payments = []
-        for mp in mode_of_payment:
-            invoice.append('payments', dict(
-                mode_of_payment=mp,
-                amount=mode_of_payment[mp]
-            ))
+
+        payments_data = mode_of_payment.get("payments", [])
+
+        # Convert dict to list if needed
+        if isinstance(payments_data, dict):
+            payments_data = [{"mode_of_payment": mp, "amount": amt} for mp, amt in payments_data.items()]
+
+        # Now process list of dicts
+        for p in payments_data:
+            invoice.append('payments', {
+                "mode_of_payment": p["mode_of_payment"],
+                "amount": p["amount"]
+            })
+
 
         invoice.validate()
         invoice.save()
@@ -227,20 +235,16 @@ class TableOrder(Document):
         self.status = "Invoiced"
         self.show_in_pos = 0
         self.link_invoice = invoice.name
-
         self.synchronize_data = dict(action="Invoiced", status=["Invoiced"])
         self.save()
 
         frappe.db.set_value("Table Order", self.name, "docstatus", 1)
-
         frappe.msgprint(_('Invoice Created'), indicator='green', alert=True)
 
-        #self.synchronize(dict(action="Invoiced", status=["Invoiced"]))
+        return dict(status=True, invoice_name=invoice.name)
 
-        return dict(
-            status=True,
-            invoice_name=invoice.name
-        )
+
+
 
     def transfer(self, table, client):
         last_table = self._table
