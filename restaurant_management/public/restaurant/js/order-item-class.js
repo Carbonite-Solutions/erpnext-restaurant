@@ -1,7 +1,8 @@
 class OrderItem {
+  // Konse status par kaunse fields editable hain
   enabled_form_fields_status = {
+    "Draft": ["qty", "rate", "notes", "batch_no", "serial_no"],
     "Pending": ["qty", "rate", "notes", "batch_no", "serial_no"],
-    "Attending": ["qty", "rate", "notes", "batch_no", "serial_no"],
     "Sent": ["notes"],
     "Processing": ["notes"]
   }
@@ -9,9 +10,9 @@ class OrderItem {
   constructor(options) {
     Object.assign(this, options);
 
-    this.attending_status = this.order.data.attending_status;
-    this.status_enabled_for_edit = [this.attending_status, "Pending", null, undefined, ""];
-    this.status_enabled_for_delete = [this.attending_status, "Pending", "Sent", null, undefined, ""];
+    // Edit/Delete allow lists — Attending hata diya, Draft add kar diya
+    this.status_enabled_for_edit = ["Draft", "Pending", null, undefined, ""];
+    this.status_enabled_for_delete = ["Draft", "Pending", "Sent", null, undefined, ""];
 
     this.render();
     this.init_synchronize();
@@ -38,8 +39,7 @@ class OrderItem {
     return (
       this.status_enabled_for_delete.includes(this.data.status)) &&
       (
-        RM.check_permissions("order", this.order, "write")// &&
-        //RM.check_permissions("pos", null, "delete")
+        RM.check_permissions("order", this.order, "write")
       );
   }
 
@@ -82,7 +82,6 @@ class OrderItem {
     this.order.current_item = this;
     this.order.order_manage.check_item_editor_status(this);
     this.row.toggle_common('media.event', 'selected');
-    //this.order.order_manage.toggle_main_section("items");
 
     if (scroller) this.order.scroller();
   }
@@ -155,7 +154,6 @@ class OrderItem {
     }
 
     if (input && ["qty", "rate", "discount_percentage"].includes(input)) {
-      //const input_field = this.form_editor.get_field(input);
       if (!this.is_enabled_to_edit) {
         return;
       }

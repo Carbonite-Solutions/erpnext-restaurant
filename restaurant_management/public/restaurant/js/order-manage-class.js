@@ -494,77 +494,71 @@ class OrderManage extends ObjectManage {
     const me = this;
     const objs = [
       {
-        name: "Minus",
-        tag: 'button',
-        properties: {
-          name: 'minus',
-          class: `btn btn-default edit-button ${default_class}`
-        },
-        content: '<span class="fa fa-minus">',
-        on: {
-          'click': () => {
-            if (this.num_pad.input && !this.num_pad.input.is_disabled) {
-              this.num_pad.input.minus();
-            }
-          }
-        }
-      },
-      {
-        name: "Qty",
-        tag: 'button', label: 'Qty',
-        properties: {
-          name: 'qty', type: 'text', input_type: "number",
-          class: default_class
-        },
-        on: {
-          'click': (obj) => {
-            this.num_pad.input = obj;
-          }
-        }
-      },
-      {
-        name: "Discount",
-        tag: 'button', label: 'Discount',
-        properties: {
-          name: 'discount', type: 'text', input_type: "number",
-          class: default_class,
-        },
-        on: {
-          'click': (obj) => {
-            this.num_pad.input = obj;
-          }
-        }
-      },
-      {
-        name: "Rate",
-        tag: 'button', label: 'Rate',
-        properties: {
-          name: 'rate', type: 'text', input_type: "number",
-          class: default_class
-        },
-        on: {
-          'click': (obj) => {
-            this.num_pad.input = obj;
-          }
-        }
-      },
-      {
-        name: "Plus",
-        tag: 'button',
-        properties: {
-          name: 'plus',
-          class: `btn btn-default edit-button ${default_class}`
-        },
-        content: '<span class="fa fa-plus">',
-        on: {
-          'click': () => {
-            this.current_order.select();
-            if (this.num_pad.input && !this.num_pad.input.is_disabled) {
-              this.num_pad.input.plus();
-            }
-          }
-        }
-      },
+  name: "Minus",
+  tag: 'button',
+  properties: { name: 'minus', class: `btn btn-default edit-button ${default_class}` },
+  content: '<span class="fa fa-minus">',
+  on: {
+    'click': () => {
+      // default to Qty if no field selected
+      if (!this.num_pad.input) this.num_pad.input = this.objects.Qty;
+      if (this.num_pad.input && !this.num_pad.input.is_disabled) {
+        this.num_pad.input.minus();
+        this.update_detail(this.num_pad.input); // <-- APPLY CHANGE
+      }
+    }
+  }
+},
+
+// Qty
+{
+  name: "Qty",
+  tag: 'button', label: 'Qty',
+  properties: { name: 'qty', type: 'text', input_type: "number", class: default_class },
+  on: {
+    'click': (obj) => {
+      this.num_pad.input = obj;                   // keep focus
+    }
+  }
+},
+
+// Discount
+{
+  name: "Discount",
+  tag: 'button', label: 'Discount',
+  properties: { name: 'discount', type: 'text', input_type: "number", class: default_class },
+  on: {
+    'click': (obj) => { this.num_pad.input = obj; }
+  }
+},
+
+// Rate
+{
+  name: "Rate",
+  tag: 'button', label: 'Rate',
+  properties: { name: 'rate', type: 'text', input_type: "number", class: default_class },
+  on: {
+    'click': (obj) => { this.num_pad.input = obj; }
+  }
+},
+
+// Plus
+{
+  name: "Plus",
+  tag: 'button',
+  properties: { name: 'plus', class: `btn btn-default edit-button ${default_class}` },
+  content: '<span class="fa fa-plus">',
+  on: {
+    'click': () => {
+      this.current_order && this.current_order.select();
+      if (!this.num_pad.input) this.num_pad.input = this.objects.Qty; // default
+      if (this.num_pad.input && !this.num_pad.input.is_disabled) {
+        this.num_pad.input.plus();
+        this.update_detail(this.num_pad.input);   // <-- APPLY CHANGE
+      }
+    }
+  }
+},
       {
         name: "Trash",
         tag: 'button',
@@ -920,8 +914,9 @@ class OrderManage extends ObjectManage {
     ).val(data.qty, false);
 
     objects.Discount.prop(
-      "disabled", !item_is_enabled_to_edit || !pos_profile.allow_discount_change
+      "disabled", !item_is_enabled_to_edit
     ).val(data.discount_percentage, false);
+
 
     objects.Rate.prop(
       "disabled", !item_is_enabled_to_edit || !pos_profile.allow_rate_change
@@ -930,6 +925,9 @@ class OrderManage extends ObjectManage {
     objects.Minus.prop("disabled", !item_is_enabled_to_edit);
     objects.Plus.prop("disabled", !item_is_enabled_to_edit);
     objects.Trash.prop("disabled", !item.is_enabled_to_delete);
+
+    this.num_pad && (this.num_pad.input = objects.Qty); // <-- focus Qty by default
+
 
     item.check_status();
   }
