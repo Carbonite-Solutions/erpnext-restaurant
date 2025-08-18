@@ -2,6 +2,8 @@ class PayForm extends DeskForm {
   payment_methods = {};
   form_name = "Payment Order";
   has_primary_action = false;
+  split_type = "none"; // 'none', 'diners', 'amount'
+  split_rows = [];
 
   constructor(options) {
     super(options);
@@ -132,7 +134,7 @@ class PayForm extends DeskForm {
         this.set_field_property("dinners", "reqd", 0);
         this.get_field("dinners").$wrapper.hide();
       } else {
-        this.get_field("delivery_options").wrapper[0].style.display = "none";;
+        this.get_field("delivery_options").wrapper[0].style.display = "none";
         this.set_field_property(["delivery_date", "pick_time", "branch", "address"], "reqd", 0);
         this.set_field_property("dinners", "reqd", 1);
         this.get_field("dinners").$wrapper.show();
@@ -210,7 +212,7 @@ class PayForm extends DeskForm {
 
   pay() {
     if (!RM.can_pay) return;
-    this.actions.pay.disable().val(__("Paying"));
+    // this.actions.pay.disable().val(__("Paying"));
     this.send_payment();
   }
   /**Actions */
@@ -271,8 +273,6 @@ class PayForm extends DeskForm {
         this.order.order_manage.num_pad.input = obj;
       }).float();
 
-      window["mode_of_payment"] = this.payment_methods[mode_of_payment.mode_of_payment]
-
       if (mode_of_payment.default === 1) {
         this.payment_methods[mode_of_payment.mode_of_payment].val(this.order.data.amount);
 
@@ -288,11 +288,188 @@ class PayForm extends DeskForm {
     });
 
     this.get_field("payment_methods").$wrapper.empty().append(payment_methods);
-    this.update_paid_value();
 
-    /*RM.pos_profile.payments.forEach(mode_of_payment => {
-        console.log(this.payment_methods[mode_of_payment.mode_of_payment])
-    });*/
+    // Add split billing options
+    this.add_split_billing_options();
+    
+    this.update_paid_value();
+  }
+
+  add_split_billing_options() {
+    const splitOptions = $(`
+      <div class="form-group">
+        <label>${__("Split Billing")}</label>
+        <div class="checkbox">
+          <label>
+            <input type="radio" name="split_type" value="none" checked> ${__("No Split")}
+          </label>
+        </div>
+        <div class="checkbox">
+          <label>
+            <input type="radio" name="split_type" value="diners"> ${__("Split by Number of Diners")}
+          </label>
+        </div>
+        <div class="checkbox">
+          <label>
+            <input type="radio" name="split_type" value="amount"> ${__("Split by Amount")}
+          </label>
+        </div>
+      </div>
+      <div id="split_diners_section" style="display:none; margin-top:10px;"></div>
+      <div id="split_amount_section" style="display:none; margin-top:10px;"></div>
+    `);
+
+    this.get_field("payment_methods").$wrapper.prepend(splitOptions);
+
+    // Handle split type changes
+    $("input[name='split_type']").on("change", (e) => {
+      this.split_type = e.target.value;
+      this.handle_split_type_change();
+    });
+
+    // Initialize split sections
+    this.init_split_diners_section();
+    this.init_split_amount_section();
+  }
+
+  handle_split_type_change() {
+    $("#split_diners_section").toggle(this.split_type === "diners");
+    $("#split_amount_section").toggle(this.split_type === "amount");
+    
+    if (this.split_type === "none") {
+      this.clear_split_inputs();
+    } else if (this.split_type === "diners") {
+      this.update_diners_split();
+    }
+  }
+
+  init_split_diners_section() {
+    const section = $("#split_diners_section");
+    section.html(`
+      <div class="form-group">
+        <label>${__("Number of Diners")}</label>
+        <input type="number" id="num_diners" class="form-control" min="1" max="10" value="1">
+      </div>
+      <div id="diners_split_summary" class="alert alert-info mt-2"></div>
+    `);
+
+    $("#num_diners").on("input", () => {
+      this.update_diners_split();
+    });
+  }
+
+  update_diners_split() {
+    const num_diners = parseInt($("#num_diners").val()) || 1;
+    const total_amount = this.order.data.amount || 0;
+    const per_diner = (total_amount / num_diners).toFixed(2);
+    
+    let summary = `<strong>${__("Split Summary")}</strong><br>`;
+    summary += `${__("Total Amount")}: ${frappe.format(total_amount, "Currency")}<br>`;
+    summary += `${__("Number of Diners")}: ${num_diners}<br>`;
+    summary += `${__("Amount per Diner")}: ${frappe.format(per_diner, "Currency")}`;
+    
+    $("#diners_split_summary").html(summary);
+  }
+
+  init_split_amount_section() {
+    const section = $("#split_amount_section");
+    section.html(`
+      <div class="form-group">
+        <label>${__("Split Amounts")}</label>
+        <table class="table table-bordered" id="split_amount_table">
+          <thead>
+            <tr>
+              <th>${__("Part")}</th>
+              <th>${__("Amount")}</th>
+              <th>${__("Payment Method")}</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <button id="add_split_row" class="btn btn-default btn-sm">
+          <i class="fa fa-plus"></i> ${__("Add Split")}
+        </button>
+        <div id="amount_split_summary" class="alert alert-info mt-2"></div>
+      </div>
+    `);
+
+    // Add first row by default
+    this.add_split_amount_row();
+    
+    $("#add_split_row").on("click", () => {
+      this.add_split_amount_row();
+    });
+  }
+
+  add_split_amount_row() {
+    const tbody = $("#split_amount_table tbody");
+    const rowCount = tbody.find("tr").length;
+    const rowId = `split_row_${rowCount + 1}`;
+    
+    // Create payment method options
+    let paymentOptions = '';
+    RM.pos_profile.payments.forEach(mode => {
+      paymentOptions += `<option value="${mode.mode_of_payment}">${mode.mode_of_payment}</option>`;
+    });
+    
+    const row = $(`
+      <tr id="${rowId}">
+        <td>Part ${rowCount + 1}</td>
+        <td><input type="number" class="form-control split-amount" min="0" step="0.01"></td>
+        <td>
+          <select class="form-control split-payment-method">
+            ${paymentOptions}
+          </select>
+        </td>
+        <td>
+          <button class="btn btn-danger btn-xs remove-split-row">
+            <i class="fa fa-times"></i>
+          </button>
+        </td>
+      </tr>
+    `);
+    
+    tbody.append(row);
+    
+    // Add remove event
+    row.find(".remove-split-row").on("click", () => {
+      row.remove();
+      this.update_amount_split_summary();
+    });
+    
+    // Add amount change event
+    row.find(".split-amount").on("input", () => {
+      this.update_amount_split_summary();
+    });
+    
+    this.update_amount_split_summary();
+  }
+
+  update_amount_split_summary() {
+    const total_amount = this.order.data.amount || 0;
+    let split_total = 0;
+    
+    $("#split_amount_table tbody tr").each(function() {
+      const amount = parseFloat($(this).find(".split-amount").val()) || 0;
+      split_total += amount;
+    });
+    
+    let summary = `<strong>${__("Split Summary")}</strong><br>`;
+    summary += `${__("Total Amount")}: ${frappe.format(total_amount, "Currency")}<br>`;
+    summary += `${__("Split Total")}: ${frappe.format(split_total, "Currency")}<br>`;
+    
+    if (split_total !== total_amount) {
+      summary += `<span style="color:red;">${__("Split amounts must equal total amount")}</span>`;
+    }
+    
+    $("#amount_split_summary").html(summary);
+  }
+
+  clear_split_inputs() {
+    // Clear any split-related inputs when no split is selected
+    $("#split_diners_section").hide();
+    $("#split_amount_section").hide();
   }
 
   form_tag(label, input) {
@@ -308,15 +485,67 @@ class PayForm extends DeskForm {
   }
 
   get payments_values() {
-    const payment_values = {};
-    RM.pos_profile.payments.forEach((mode_of_payment) => {
-      let value = this.payment_methods[mode_of_payment.mode_of_payment].float_val;
-      if (value > 0) {
-        payment_values[mode_of_payment.mode_of_payment] = value;
-      }
-    });
+    if (this.split_type === "none") {
+      // Original payment handling
+      const payment_values = {};
+      RM.pos_profile.payments.forEach((mode_of_payment) => {
+        let value = this.payment_methods[mode_of_payment.mode_of_payment].float_val;
+        if (value > 0) {
+          payment_values[mode_of_payment.mode_of_payment] = value;
+        }
+      });
+      return payment_values;
+    } else if (this.split_type === "diners") {
+        const num_diners = parseInt($("#num_diners").val()) || 1;
+        const per_diner = (this.order.data.amount / num_diners).toFixed(2);
 
-    return payment_values;
+        // Create one payment entry per diner
+        const split_payments = [];
+        RM.pos_profile.payments.forEach((mode_of_payment) => {
+            if (mode_of_payment.default === 1) {
+                for (let i = 0; i < num_diners; i++) {
+                    split_payments.push({
+                        mode_of_payment: mode_of_payment.mode_of_payment,
+                        amount: parseFloat(per_diner)
+                    });
+                }
+            }
+        });
+
+        return {
+            split_type: "diners",
+            num_diners: num_diners,
+            payments: split_payments
+        };
+    } else if (this.split_type === "amount") {
+      // Split by amount - custom amounts from table
+      const split_payments = [];
+      let valid = true;
+      
+      $("#split_amount_table tbody tr").each(function() {
+        const amount = parseFloat($(this).find(".split-amount").val()) || 0;
+        const method = $(this).find(".split-payment-method").val();
+        
+        if (amount > 0) {
+          split_payments.push({
+            amount: amount,
+            mode_of_payment: method
+          });
+        }
+      });
+      
+      // Validate the total
+      const split_total = split_payments.reduce((sum, item) => sum + item.amount, 0);
+      if (Math.abs(split_total - this.order.data.amount) > 0.01) {
+        frappe.msgprint(__("Split amounts must equal the total bill amount"));
+        valid = false;
+      }
+      
+      return valid ? {
+        split_type: "amount",
+        payments: split_payments
+      } : null;
+    }
   }
 
   send_payment() {
@@ -342,12 +571,17 @@ class PayForm extends DeskForm {
     super.save({
       success: (r) => {
         RM.working("Paying Invoice");
+        
+        const payment_args = this.payments_values;
+        if (!payment_args) return; // Validation failed
+        
         frappeHelper.api.call({
           model: "Table Order",
           name: this.order.data.name,
           method: "make_invoice",
           args: {
-            mode_of_payment: this.payments_values
+            mode_of_payment: payment_args,
+            split_type: this.split_type
           },
           always: (r) => {
             RM.ready();
@@ -443,3 +677,4 @@ class PayForm extends DeskForm {
 }
 
 }
+
