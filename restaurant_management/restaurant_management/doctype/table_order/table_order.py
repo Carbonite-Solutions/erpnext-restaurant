@@ -239,6 +239,7 @@ class TableOrder(Document):
         self.save()
 
         frappe.db.set_value("Table Order", self.name, "docstatus", 1)
+        frappe.db.set_value("Restaurant Object", self.table, "customer", "")
         frappe.msgprint(_('Invoice Created'), indicator='green', alert=True)
 
         return dict(status=True, invoice_name=invoice.name)

@@ -455,6 +455,7 @@ class RestaurantObject(Document):
 
     def get_command_data(self, entry, las_status=None, key_name="identifier"):
         short_name = self.order_short_name(entry.parent)
+        order_doc = frappe.get_doc("Table Order", entry.parent)
         return dict(
             identifier=entry.identifier,
             item_group=entry.item_group,
@@ -478,7 +479,8 @@ class RestaurantObject(Document):
             notes=entry.notes,
             # frappe.format_value(entry.creation, {"fieldtype": "Datetime"}),
             ordered_time=entry.ordered_time or frappe.utils.now_datetime(),
-            process_status_data=self.process_status_data(entry)
+            process_status_data=self.process_status_data(entry),
+            customer=order_doc.customer if hasattr(order_doc, "customer") else None,   # 👈 add this
         )
 
     def process_status_data(self, item):

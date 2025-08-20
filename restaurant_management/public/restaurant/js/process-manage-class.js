@@ -135,6 +135,75 @@ ProcessManage = class ProcessManage {
             <p class="control-value like-disabled-input for-description" data-name="notes">
                 ${data.notes || ""}
             </p>` : "";
+    const takeout_heading = 
+    data.customer === RM.pos_res_settings.take_out_customer 
+      ? `<p class="dinein-text">
+    TakeOut Menu
+</p>
+
+<style>
+.dinein-text {
+    font-size: 18px; 
+    font-weight: bold; 
+    text-align: center; 
+    padding: 8px 14px; 
+    letter-spacing: 1.2px;
+    display: block;
+    margin: 0 auto; 
+    background: transparent;
+    color: transparent;
+    -webkit-background-clip: text;
+    background-clip: text;
+    background-image: linear-gradient(90deg, #ff9966, #ff5e62); /* Orange → Pinkish Red */
+    text-transform: uppercase;
+    transition: all 0.3s ease-in-out;
+    cursor: default;
+}
+
+/* Hover Effect */
+.dinein-text:hover {
+    transform: scale(1.05);
+    text-shadow: 0 0 8px rgba(255, 153, 102, 0.7), 0 0 16px rgba(255, 94, 98, 0.6);
+}
+</style>
+
+
+` 
+      : "";
+    const diner_heading =
+    data.customer != RM.pos_res_settings.take_out_customer 
+      ? `<p class="dinein-text">
+    Dine-In Order
+</p>
+
+<style>
+.dinein-text {
+    font-size: 18px; 
+    font-weight: bold; 
+    text-align: center; 
+    padding: 8px 14px; 
+    letter-spacing: 1.2px;
+    display: block;
+    margin: 0 auto; 
+    background: transparent;
+    color: transparent;
+    -webkit-background-clip: text;
+    background-clip: text;
+    background-image: linear-gradient(90deg, #FFD700, #FF4500); /* Golden → Red gradient */
+    text-transform: uppercase;
+    transition: all 0.3s ease-in-out;
+    cursor: default;
+}
+
+/* Hover Effect */
+.dinein-text:hover {
+    transform: scale(1.05);
+    text-shadow: 0 0 8px rgba(255, 215, 0, 0.8), 0 0 16px rgba(255, 69, 0, 0.6);
+}
+</style>
+` 
+      : "";
+
 
       return $(`
             <div div class="widget links-widget-box hide" data-group="${data.name}" >
@@ -169,7 +238,7 @@ ProcessManage = class ProcessManage {
                 <div class="widget-body" style="height: 100%; padding-top: 10px;">
                     <table class="table table-sm" style="margin-top:0;">
                         <thead>
-                            <tr style="display: ${data.is_delivery ? "" : "none"}" data-name="customer-info">
+                            <tr style="display: ${data.is_delivery ? "" : "none"}" data-name="customer-info"> 
                                 <th colspan="2" style="border-top: 0px;">
                                     <span class="ellipsis">
                                         <div style="width: 100%; height: 30px;">
@@ -189,6 +258,8 @@ ProcessManage = class ProcessManage {
                                     </p>
                                 </th>
                             </tr>
+                            ${takeout_heading}
+                            ${diner_heading}
                             <tr>
                                 <th>Item</th>
                                 <th style="width: 40px">QTY</th>

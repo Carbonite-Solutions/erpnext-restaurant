@@ -415,22 +415,69 @@ RestaurantObject = class RestaurantObject {
                 {
                   fieldtype: 'Column Break'
                 },
-                {
+                 {
                   fieldtype: 'Check',
                   label: __('Direct Checkin'),
                   fieldname: "direct_checkin",
                   onchange: function () {
                     const is_checked = dialog.get_value("direct_checkin");
-                    const customer_field = dialog.get_field("customer");
+                    const customer_field = dialog.fields_dict.customer;
+                    const takeout_field = dialog.fields_dict.takeout_checkin;
 
                     if (is_checked) {
+                      // Direct choose hote hi Take-out auto uncheck & hide
+                      dialog.set_value("takeout_checkin", 0);
+                      takeout_field.df.hidden = true;
+                      takeout_field.refresh();
+
+                      // Hide Customer field & set direct checkin customer
+                      dialog.set_value("customer", RM.pos_res_settings.direct_checkin_customer || "");
                       customer_field.df.hidden = true;
                       customer_field.refresh();
-                      dialog.set_value("customer", RM.pos_res_settings.direct_checkin_customer);
                     } else {
-                      customer_field.df.hidden = false;
+                      // Show take-out option back
+                      takeout_field.df.hidden = false;
+                      takeout_field.refresh();
+
+                      // Show customer field only if both unchecked
+                      if (!dialog.get_value("takeout_checkin")) {
+                        customer_field.df.hidden = false;
+                        dialog.set_value("customer", "");
+                        customer_field.refresh();
+                      }
+                    }
+                  }
+                },
+                {
+                  fieldtype: 'Check',
+                  label: __('Take-out Checkin'),
+                  fieldname: "takeout_checkin",
+                  onchange: function () {
+                    const is_checked = dialog.get_value("takeout_checkin");
+                    const customer_field = dialog.fields_dict.customer;
+                    const direct_field = dialog.fields_dict.direct_checkin;
+
+                    if (is_checked) {
+                      // Take-out choose hote hi Direct auto uncheck & hide
+                      dialog.set_value("direct_checkin", 0);
+                      direct_field.df.hidden = true;
+                      direct_field.refresh();
+
+                      // Hide Customer field & set take-out customer
+                      dialog.set_value("customer", RM.pos_res_settings.take_out_customer || "");
+                      customer_field.df.hidden = true;
                       customer_field.refresh();
-                      dialog.set_value("customer", "");
+                    } else {
+                      // Show direct option back
+                      direct_field.df.hidden = false;
+                      direct_field.refresh();
+
+                      // Show customer field only if both unchecked
+                      if (!dialog.get_value("direct_checkin")) {
+                        customer_field.df.hidden = false;
+                        dialog.set_value("customer", "");
+                        customer_field.refresh();
+                      }
                     }
                   }
                 },
