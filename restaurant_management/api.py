@@ -13,10 +13,8 @@ def call(model, name, method, args=None):
     doc = frappe.get_doc(model, name)
     if args is not None:
         _args = json.loads(args)
-        # args = [_args[arg] for arg in _args]
         kwargs = {arg: _args[arg] for arg in _args}
         return getattr(doc, method)(**kwargs)
-    # return doc.run_method(method, **kwargs)
     else:
         return getattr(doc, method)
 
@@ -41,7 +39,6 @@ def validate_link():
 
     value, options, fetch = frappe.form_dict.get('value'), frappe.form_dict.get('options'), frappe.form_dict.get('fetch')
 
-    # no options, don't validate
     if not options or options=='null' or options=='undefined':
         frappe.response['message'] = 'Ok'
         return
@@ -51,9 +48,7 @@ def validate_link():
     if valid_value:
         valid_value = valid_value[0][0]
 
-        # get fetch values
         if fetch:
-            # escape with "`"
             fetch = ", ".join(("`{0}`".format(f.strip()) for f in fetch.split(",")))
             fetch_value = None
             try:
@@ -71,3 +66,12 @@ def validate_link():
         frappe.response['valid_value'] = valid_value
         frappe.response['message'] = 'Ok'
 
+
+@frappe.whitelist()
+def clear_table(table):
+    """
+    Clear the customer from Restaurant Object after receipt is closed
+    """
+    frappe.db.set_value("Restaurant Object", table, "customer", "")
+    frappe.publish_realtime("table_cleared", {"table": table})
+    return {"status": "success"}
