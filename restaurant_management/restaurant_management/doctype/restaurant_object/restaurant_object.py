@@ -334,19 +334,29 @@ class RestaurantObject(Document):
 
         status = self.next_status(last_status)
 
-        order = frappe.get_doc("Table Order", identifier if self.group_items_by_order else frappe.db.get_value(
-            "Order Entry Item", {"identifier": identifier}, "parent"))
+        order = frappe.get_doc(
+            "Table Order", 
+            identifier if self.group_items_by_order 
+            else frappe.db.get_value("Order Entry Item", {"identifier": identifier}, "parent")
+        )
 
         if order.show_in_pos == 1:
             order.status = status
 
         if self.group_items_by_order == 1:
-            frappe.db.set_value("Table Order", {
-                "name": identifier}, "status", status)
-        else:
-            frappe.db.set_value("Order Entry Item", {
-                "identifier": identifier}, "status", status)
+            frappe.db.set_value("Table Order", {"name": identifier}, "status", status)
 
+            order_entry_items = frappe.get_all(
+                "Order Entry Item",
+                filters={"parent": identifier},
+                fields=["name", "identifier", "food_order"]
+            )
+            for item in order_entry_items:
+                frappe.db.set_value("Order Entry Item", {"name": item["name"]}, "status", status)
+                order.change_kitchen_status(status=status, order_name=item["food_order"])
+
+        else:
+            frappe.db.set_value("Order Entry Item", {"identifier": identifier}, "status", status)
             order.change_kitchen_status(status=status, order_name=food_order)
 
         order.reload()
