@@ -41,7 +41,8 @@
   "customer",
   "group_items_by_order",
   "file",
-  "image"
+  "image",
+  "custom_group_items_by_order"
  ],
  "fields": [
   {
@@ -231,10 +232,16 @@
    "fieldname": "image",
    "fieldtype": "Attach Image",
    "label": "Image"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_group_items_by_order",
+   "fieldtype": "Check",
+   "label": "Custom Group Items By Order"
   }
  ],
  "links": [],
- "modified": "2025-07-29 15:00:06.306195",
+ "modified": "2025-08-21 13:09:32.979464",
  "modified_by": "Administrator",
  "module": "Restaurant Management",
  "name": "Restaurant Object",
@@ -279,7 +286,6 @@
   }
  ],
  "quick_entry": 1,
- "row_format": "Dynamic",
  "search_fields": "room_description,type,description",
  "sort_field": "modified",
  "sort_order": "DESC",
