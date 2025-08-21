@@ -102,26 +102,34 @@ ProcessManage = class ProcessManage {
   get_commands_food(clean = false) {
     RM.working("Load commands food");
     frappeHelper.api.call({
-      model: "Restaurant Object",
-      name: this.table.data.name,
-      method: "commands_food",
-      args: {},
-      always: (r) => {
-        RM.ready();
-
-        setTimeout(() => {
-          if (clean) {
-            this.items = {};
-            this.new_items_keys = [];
-            this.orders = {};
-
-            $(this.command_container()).empty();
-          }
-          this.make_food_commands(r.message);
-        }, 100);
-      },
+        model: "Restaurant Object",
+        name: this.table.data.name,
+        method: "commands_food",
+        args: {
+            // Tell server to filter empty orders in mixed mode
+            filter_empty_orders: this.group_items_by_order && this.custom_group_items_by_order
+        },
+        always: (r) => {
+            RM.ready();
+            setTimeout(() => {
+                if (clean) {
+                    this.items = {};
+                    this.new_items_keys = [];
+                    this.orders = {};
+                    $(this.command_container()).empty();
+                }
+                
+                // Still apply client-side filtering as backup
+                let filteredGroups = r.message;
+                if (this.group_items_by_order && this.custom_group_items_by_order) {
+                    filteredGroups = this.filter_empty_groups(r.message);
+                }
+                
+                this.make_food_commands(filteredGroups);
+            }, 100);
+        },
     });
-  }
+}
 
   table_info(data) {
     return `${data.room_description} (${data.table_description})`;
@@ -361,6 +369,59 @@ ProcessManage = class ProcessManage {
       delete this.orders[data.name];
     };
 
+    // NEW: Filter out empty orders in mixed mode BEFORE processing
+    let ordersToProcess = orders;
+    if (this.group_items_by_order && this.custom_group_items_by_order) {
+      ordersToProcess = {};
+      Object.entries(orders).forEach(([key, order]) => {
+        const data = order.data || order;
+        // Check if order has any items with managed statuses
+        const hasManagedItems = data.items?.some(item => 
+          this.include_status(item.status, item, data)
+        );
+        
+        if (hasManagedItems) {
+          ordersToProcess[key] = order;
+        }
+      });
+    }
+
+    Object.values(ordersToProcess).forEach(order => {
+      const data = order.data || order;
+      const available = this.check_available_item(data, data);
+
+      if (order_is_render(order)) {
+        available ? update_order(data) : delete_order(data);
+      } else if (available) {
+        add_order(order);
+      }
+    });
+
+    // NEW: Check for empty orders after processing all items
+    const check_and_remove_empty_orders = () => {
+    if (this.group_items_by_order && this.custom_group_items_by_order) {
+      Object.values(this.orders).forEach(order => {
+        const data = order.data || order;
+        const orderElement = $(`[data-group="${data.name}"]`);
+        
+        // Check if the element still exists in DOM
+        if (orderElement.length > 0) {
+          const hasVisibleItems = orderElement.find('.item-wrapper tr:visible').length > 0;
+          
+          if (!hasVisibleItems) {
+            delete_order(data);
+          }
+        } else {
+          // Element doesn't exist, clean up the reference
+          delete this.orders[data.name];
+        }
+      });
+    }
+  };
+
+    setTimeout(check_and_remove_empty_orders, 100);
+  
+
     Object.values(orders).forEach(order => {
       const data = order.data || order;
       const available = this.check_available_item(data, data);
@@ -502,6 +563,7 @@ ProcessManage = class ProcessManage {
   }
 
   check_available_item(item, order) {
+
     /*console.log({
         status: this.include_status(this.group_items_by_order ? order.status : item.status),
         item_group: this.include_item_group(item.item_group),
@@ -574,7 +636,7 @@ ProcessManage = class ProcessManage {
       this.items[item].remove();
     }
   }
-
+  
   add_item(item, order) {
     const order_name = this.group_items_by_order ? item.order_name : item.identifier;
     const container = $(this.command_container()).find(`[data-group="${order_name}"] .item-wrapper`);
