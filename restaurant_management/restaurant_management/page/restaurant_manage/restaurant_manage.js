@@ -736,6 +736,34 @@ RestaurantManage = class RestaurantManage {
       }
     });
 
+frappe.realtime.on("table_cleared_after_invoice", (table_name) => {
+
+    frappe.call({
+        method: "frappe.client.set_value",
+        args: {
+            doctype: "Restaurant Object",
+            name: table_name,
+            fieldname: "customer",
+            value: ""
+        },
+        callback: (r) => {
+            if (!r.exc) {
+                const table_obj = RM.object(table_name);
+                
+                if (table_obj) {
+                    table_obj.data.customer = "";
+                    
+                    if (table_obj.order_manage && table_obj.order_manage.is_visible) {
+                        table_obj.order_manage.hide();
+                    }
+                }
+            } else {
+                console.error("Failed to clear customer from backend:", r.exc);
+            }
+        }
+    });
+});
+
     frappe.realtime.on("update_settings", () => {
       this.settings_data.then(() => {
         this.make_rooms();
