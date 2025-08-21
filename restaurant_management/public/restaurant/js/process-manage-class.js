@@ -135,6 +135,7 @@ ProcessManage = class ProcessManage {
             <p class="control-value like-disabled-input for-description" data-name="notes">
                 ${data.notes || ""}
             </p>` : "";
+      const showItemStatus = this.group_items_by_order && this.custom_group_items_by_order;
     const takeout_heading = 
     data.customer === RM.pos_res_settings.take_out_customer 
       ? `<p class="dinein-text">
@@ -263,6 +264,7 @@ ProcessManage = class ProcessManage {
                             <tr>
                                 <th>Item</th>
                                 <th style="width: 40px">QTY</th>
+                                ${showItemStatus ? '<th style="width: 120px">Status</th>' : ''}
                             </tr>
                         </thead>
                         <tbody class="item-wrapper">
@@ -270,14 +272,14 @@ ProcessManage = class ProcessManage {
                         </tbody>
                         <tfoot>
                             <tr>
-                                <td colspan="2">
+                                <td colspan="${showItemStatus ? '3' : '2'}">
                                     ${notes}
                                 </td>
                             </tr>
                         </tfoot>
                     </table>
                 </div>
-
+                ${!showItemStatus ? `
                 <div class="widget-footer">
                     <div class="widget-control">
                         <div class="btn-group" style="width:100%">
@@ -285,7 +287,7 @@ ProcessManage = class ProcessManage {
                             ${order.action_button.html()}
                         </div>
                     </div>
-                </div>
+                </div> `: ''}
             </div>`);
     };
 
@@ -507,7 +509,7 @@ ProcessManage = class ProcessManage {
         table: this.item_available_in_table(item)
     })*/
     return [
-      this.include_status(this.group_items_by_order ? order.status : item.status),
+      this.include_status(item.status, item, order),
       this.include_item_group(item.item_group),
       this.item_available_in_branch(item),
       this.item_available_in_table(item)
@@ -576,19 +578,74 @@ ProcessManage = class ProcessManage {
   add_item(item, order) {
     const order_name = this.group_items_by_order ? item.order_name : item.identifier;
     const container = $(this.command_container()).find(`[data-group="${order_name}"] .item-wrapper`);
+    const showItemStatus = this.group_items_by_order && this.custom_group_items_by_order;
+
+    // Create status elements for the item if in mixed mode
+    if (showItemStatus) {
+      item.status_label = frappe.jshtml({
+        tag: "span",
+        properties: {
+          class: "btn btn-flat btn-food-command status-label",
+          style: `background-color: ${item.process_status_data.color}; margin-right: 5px;`
+        },
+        content: `<i class="${item.process_status_data.icon} status-label-icon" style="font-size: 16px"></i> ${item.process_status_data.status_message}`,
+      });
+
+      item.action_button = frappe.jshtml({
+        tag: "button",
+        properties: {
+          class: `btn btn-default btn-flat btn-food-command`,
+          style: 'border-radius: 0 !important; padding: 3px 8px;'
+        },
+        content: '{{text}}',
+        text: item.process_status_data.next_action_message,
+      }).on("click", () => {
+        this.execute_item(item);
+      }, !RM.restrictions.to_change_status_order ? DOUBLE_CLICK : null);
+    }
 
     this.items[item.identifier] = new FoodCommand({
       identifier: item.identifier,
       process_manage: this,
       data: item,
       container: container,
-      order: order
+      order: order,
+      showItemStatus: showItemStatus
+    });
+  }
+  execute_item(item) {
+    if (RM.busy_message()) {
+      return;
+    }
+    RM.working(item.process_status_data.next_action_message, false);
+
+    frappeHelper.api.call({
+      model: "Restaurant Object",
+      name: this.table.data.name,
+      method: "set_status_command",
+      args: {
+        identifier: item.identifier,
+        custom_group_items_by_order: this.custom_group_items_by_order
+      },
+      always: () => {
+        RM.ready(false, "success");
+      },
     });
   }
 
-  include_status(status) {
+  include_status(status, item = null, order = null) {
+  if (this.group_items_by_order && !this.custom_group_items_by_order) {
+    // Pure order grouping
+    return this.table.data.status_managed.includes(order?.status);
+  } else if (!this.group_items_by_order && !this.custom_group_items_by_order) {
+    // Pure item mode
     return this.table.data.status_managed.includes(status);
+  } else if (this.group_items_by_order && this.custom_group_items_by_order) {
+    // ✅ Mixed mode → use item.status
+    return this.table.data.status_managed.includes(item?.status);
   }
+  return false;
+}
 
   include_item_group(item_group) {
     return this.table.data.items_group.includes("All Item Groups") || this.table.data.items_group.includes(item_group);
@@ -604,5 +661,8 @@ ProcessManage = class ProcessManage {
 
   get group_items_by_order() {
     return this.table.data.group_items_by_order === 1;
+  }
+  get custom_group_items_by_order() {
+    return this.table.data.custom_group_items_by_order === 1;
   }
 }

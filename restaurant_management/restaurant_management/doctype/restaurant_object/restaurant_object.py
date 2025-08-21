@@ -248,7 +248,7 @@ class RestaurantObject(Document):
         if self.type == "Room":
             fields = "name,description,orders_count"
         else:
-            fields = "name,type,description,no_of_seats,identifier,orders_count,data_style,group_items_by_order,min_size,current_user,color,shape,restricted_to_rooms,restricted_to_tables,restricted_to_branches,customer"
+            fields = "name,type,description,no_of_seats,identifier,orders_count,data_style,group_items_by_order,custom_group_items_by_order,min_size,current_user,color,shape,restricted_to_rooms,restricted_to_tables,restricted_to_branches,customer"
         
         data = {}
 
@@ -324,47 +324,75 @@ class RestaurantObject(Document):
             "room": self.name, "type": t
         })
 
-    def set_status_command(self, identifier):
-        if self.group_items_by_order == 1:
-            last_status = frappe.db.get_value(
-                "Table Order", {"name": identifier}, "status")
+    def set_status_command(self, identifier, custom_group_items_by_order=None):
+        # Determine if we're in mixed mode (both flags enabled)
+        mixed_mode = self.group_items_by_order == 1 and custom_group_items_by_order
+        
+        # Get current status and related data
+        if mixed_mode or self.group_items_by_order != 1:
+            # Item-level status change
+            last_status, food_order, parent = frappe.db.get_value(
+                "Order Entry Item", 
+                {"identifier": identifier}, 
+                ["status", "food_order", "parent"]
+            )
         else:
-            last_status, food_order = frappe.db.get_value(
-                "Order Entry Item", {"identifier": identifier}, ["status", "food_order"])
+            # Order-level status change
+            last_status = frappe.db.get_value(
+                "Table Order", 
+                {"name": identifier}, 
+                "status"
+            )
+            parent = identifier
 
         status = self.next_status(last_status)
+        order = frappe.get_doc("Table Order", parent)
 
-        order = frappe.get_doc(
-            "Table Order", 
-            identifier if self.group_items_by_order 
-            else frappe.db.get_value("Order Entry Item", {"identifier": identifier}, "parent")
-        )
-
-        if order.show_in_pos == 1:
-            order.status = status
-
-        if self.group_items_by_order == 1:
-            frappe.db.set_value("Table Order", {"name": identifier}, "status", status)
-
-            order_entry_items = frappe.get_all(
+        # Update the appropriate record
+        if mixed_mode or self.group_items_by_order != 1:
+            # Update individual item status
+            frappe.db.set_value(
                 "Order Entry Item",
-                filters={"parent": identifier},
-                fields=["name", "identifier", "food_order"]
+                {"identifier": identifier},
+                "status",
+                status
             )
-            for item in order_entry_items:
-                frappe.db.set_value("Order Entry Item", {"name": item["name"]}, "status", status)
-                order.change_kitchen_status(status=status, order_name=item["food_order"])
-
+            
+            # Update kitchen status if needed
+            if food_order:
+                order.change_kitchen_status(status=status, order_name=food_order)
         else:
-            frappe.db.set_value("Order Entry Item", {"identifier": identifier}, "status", status)
-            order.change_kitchen_status(status=status, order_name=food_order)
+            # Update entire order status
+            if order.show_in_pos == 1:
+                order.status = status
+            if self.group_items_by_order == 1:
+                frappe.db.set_value(
+                    "Table Order",
+                    {"name": identifier},
+                    "status",
+                    status
+                )
+                order_entry_item = frappe.get_all(
+                    "Order Entry Item",
+                    filters={"parent": identifier},
+                    fields=["name","identifier","food_order"]
+                )
+                for item in order_entry_item:
+                    frappe.db.set_value("Order Entry Item", {"name": item["name"]}, "status", status)
+                    order.change_kitchen_status(status=status, order_name=item["food_order"])
 
+        # Reload and synchronize changes
         order.reload()
+        
+        # Only get updated items if we're in item-level mode
         items = None
-        if self.group_items_by_order != 1:
+        if mixed_mode or self.group_items_by_order != 1:
             items = self.commands_food(identifier, last_status)
 
-        order.synchronize(dict(items=items, status=[last_status, status]))
+        order.synchronize(dict(
+            items=items,
+            status=[last_status, status]
+        ))
 
     def command_data(self, command):
         item = self.commands_food(command)
