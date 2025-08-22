@@ -239,7 +239,8 @@ class TableOrder(Document):
         self.save()
 
         frappe.db.set_value("Table Order", self.name, "docstatus", 1)
-        frappe.db.set_value("Restaurant Object", self.table, "customer", "")
+        # Publish realtime event to notify clients that this table is now empty and its customer should be cleared
+        frappe.publish_realtime('table_cleared_after_invoice', self.table)
         frappe.msgprint(_('Invoice Created'), indicator='green', alert=True)
 
         return dict(status=True, invoice_name=invoice.name)
