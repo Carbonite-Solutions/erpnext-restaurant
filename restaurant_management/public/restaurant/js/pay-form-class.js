@@ -268,6 +268,11 @@ class PayForm extends DeskForm {
           class: `input-with-feedback form-control bold`
         },
       }).on(["change", "keyup"], () => {
+        // Prevent negative values
+        const value = parseFloat(this.payment_methods[mode_of_payment.mode_of_payment].val());
+        if (value < 0) {
+          this.payment_methods[mode_of_payment.mode_of_payment].val(0);
+        }
         this.update_paid_value();
       }).on("click", (obj) => {
         this.order.order_manage.num_pad.input = obj;
@@ -366,7 +371,32 @@ class PayForm extends DeskForm {
     let summary = `<strong>${__("Split Summary")}</strong><br>`;
     summary += `${__("Total Amount")}: ${frappe.format(total_amount, "Currency")}<br>`;
     summary += `${__("Number of Diners")}: ${num_diners}<br>`;
-    summary += `${__("Amount per Diner")}: ${frappe.format(per_diner, "Currency")}`;
+    summary += `${__("Amount per Diner")}: ${frappe.format(per_diner, "Currency")}<br><br>`;
+    
+    // Create payment method selection for each diner
+    let paymentOptions = '';
+    RM.pos_profile.payments.forEach(mode => {
+      paymentOptions += `<option value="${mode.mode_of_payment}">${mode.mode_of_payment}</option>`;
+    });
+    
+    summary += `<table class="table table-bordered" style="font-size: 12px;">`;
+    summary += `<tr><th>${__("Diner")}</th><th>${__("Amount")}</th><th>${__("Payment Method")}</th></tr>`;
+    
+    for (let i = 1; i <= num_diners; i++) {
+      summary += `
+        <tr>
+          <td>${__("Diner")} ${i}</td>
+          <td>${frappe.format(per_diner, "Currency")}</td>
+          <td>
+            <select class="form-control input-sm diner-payment-method" data-diner="${i}">
+              ${paymentOptions}
+            </select>
+          </td>
+        </tr>
+      `;
+    }
+    
+    summary += `</table>`;
     
     $("#diners_split_summary").html(summary);
   }
@@ -496,27 +526,25 @@ class PayForm extends DeskForm {
       });
       return payment_values;
     } else if (this.split_type === "diners") {
-        const num_diners = parseInt($("#num_diners").val()) || 1;
-        const per_diner = (this.order.data.amount / num_diners).toFixed(2);
-
-        // Create one payment entry per diner
-        const split_payments = [];
-        RM.pos_profile.payments.forEach((mode_of_payment) => {
-            if (mode_of_payment.default === 1) {
-                for (let i = 0; i < num_diners; i++) {
-                    split_payments.push({
-                        mode_of_payment: mode_of_payment.mode_of_payment,
-                        amount: parseFloat(per_diner)
-                    });
-                }
-            }
+      const num_diners = parseInt($("#num_diners").val()) || 1;
+      const per_diner = (this.order.data.amount / num_diners).toFixed(2);
+      
+      // Create payment entries for each diner with their selected payment method
+      const split_payments = [];
+      
+      for (let i = 1; i <= num_diners; i++) {
+        const paymentMethod = $(`.diner-payment-method[data-diner="${i}"]`).val();
+        split_payments.push({
+          mode_of_payment: paymentMethod,
+          amount: parseFloat(per_diner)
         });
-
-        return {
-            split_type: "diners",
-            num_diners: num_diners,
-            payments: split_payments
-        };
+      }
+      
+      return {
+        split_type: "diners",
+        num_diners: num_diners,
+        payments: split_payments
+      };
     } else if (this.split_type === "amount") {
       // Split by amount - custom amounts from table
       const split_payments = [];
@@ -548,8 +576,58 @@ class PayForm extends DeskForm {
     }
   }
 
+  // Add validation method
+  validate_payments() {
+    const payment_args = this.payments_values;
+    
+    if (!payment_args) {
+      frappe.msgprint(__("Please configure split billing correctly."));
+      return false;
+    }
+    
+    if (this.split_type === "none") {
+      // Check if at least one payment method has amount > 0
+      const hasValidPayment = Object.values(payment_args).some(amount => amount > 0);
+      
+      if (!hasValidPayment) {
+        frappe.msgprint(__("At least one mode of payment is required for POS invoice."));
+        return false;
+      }
+    } else if (this.split_type === "diners") {
+      // For diners split, we already have payments configured
+      const num_diners = parseInt($("#num_diners").val()) || 0;
+      if (num_diners < 1) {
+        frappe.msgprint(__("Number of diners must be at least 1."));
+        return false;
+      }
+    } else if (this.split_type === "amount") {
+      // For amount split, validate that payments total equals order amount
+      const total_amount = this.order.data.amount || 0;
+      const split_total = payment_args.payments.reduce((sum, item) => sum + item.amount, 0);
+      
+      if (Math.abs(split_total - total_amount) > 0.01) {
+        frappe.msgprint(__("Split amounts must equal the total bill amount."));
+        return false;
+      }
+      
+      if (payment_args.payments.length === 0) {
+        frappe.msgprint(__("At least one split payment is required."));
+        return false;
+      }
+    }
+    
+    return true;
+  }
+
   send_payment() {
     RM.working("Saving Invoice");
+    
+    // Validate that at least one payment method has a value
+    if (!this.validate_payments()) {
+      RM.ready();
+      return;
+    }
+    
     this.#send_payment();
   }
 
@@ -570,10 +648,16 @@ class PayForm extends DeskForm {
 
     super.save({
       success: (r) => {
+        // Revalidate payments before processing
+        if (!this.validate_payments()) {
+          RM.ready();
+          this.reset_payment_button();
+          return;
+        }
+        
         RM.working("Paying Invoice");
         
         const payment_args = this.payments_values;
-        if (!payment_args) return; // Validation failed
         
         frappeHelper.api.call({
           model: "Table Order",
@@ -674,7 +758,5 @@ class PayForm extends DeskForm {
     // Force remove backdrop and modal-open class
     $('.modal-backdrop').remove();
     $('body').removeClass('modal-open');
+  }
 }
-
-}
-

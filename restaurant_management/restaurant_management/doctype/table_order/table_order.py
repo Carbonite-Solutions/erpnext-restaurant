@@ -199,7 +199,6 @@ class TableOrder(Document):
 
         if status is not None:
             RestaurantManage.production_center_notify(status)
-
     def make_invoice(self, **kwargs):
         mode_of_payment = kwargs.get("mode_of_payment")
         split_type = kwargs.get("split_type")
@@ -214,19 +213,34 @@ class TableOrder(Document):
         invoice = self.get_invoice(entry_items, True)
         invoice.payments = []
 
-        payments_data = mode_of_payment.get("payments", [])
+        # Handle different payment structures based on split type
+        if split_type == "none":
+            # Original structure - dict with mode_of_payment: amount
+            for mp, amt in mode_of_payment.items():
+                if amt > 0:  # Only add payments with positive amounts
+                    invoice.append('payments', {
+                        "mode_of_payment": mp,
+                        "amount": amt
+                    })
+        else:
+            # New structure for split payments - list of dicts with mode_of_payment and amount
+            payments_data = mode_of_payment.get("payments", [])
+            
+            # Convert dict to list if needed (backward compatibility)
+            if isinstance(payments_data, dict):
+                payments_data = [{"mode_of_payment": mp, "amount": amt} for mp, amt in payments_data.items()]
 
-        # Convert dict to list if needed
-        if isinstance(payments_data, dict):
-            payments_data = [{"mode_of_payment": mp, "amount": amt} for mp, amt in payments_data.items()]
+            # Now process list of dicts
+            for p in payments_data:
+                if p.get("amount", 0) > 0:  # Only add payments with positive amounts
+                    invoice.append('payments', {
+                        "mode_of_payment": p["mode_of_payment"],
+                        "amount": p["amount"]
+                    })
 
-        # Now process list of dicts
-        for p in payments_data:
-            invoice.append('payments', {
-                "mode_of_payment": p["mode_of_payment"],
-                "amount": p["amount"]
-            })
-
+        # Validate that at least one payment method has amount > 0
+        if not invoice.payments:
+            frappe.throw(_("At least one mode of payment is required for POS invoice."))
 
         invoice.validate()
         invoice.save()
