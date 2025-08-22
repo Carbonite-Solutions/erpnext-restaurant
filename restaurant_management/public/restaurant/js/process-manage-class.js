@@ -101,14 +101,12 @@ ProcessManage = class ProcessManage {
 
   get_commands_food(clean = false) {
     RM.working("Load commands food");
+    
     frappeHelper.api.call({
         model: "Restaurant Object",
         name: this.table.data.name,
         method: "commands_food",
-        args: {
-            // Tell server to filter empty orders in mixed mode
-            filter_empty_orders: this.group_items_by_order && this.custom_group_items_by_order
-        },
+        args: {},
         always: (r) => {
             RM.ready();
             setTimeout(() => {
@@ -119,16 +117,80 @@ ProcessManage = class ProcessManage {
                     $(this.command_container()).empty();
                 }
                 
-                // Still apply client-side filtering as backup
-                let filteredGroups = r.message;
-                if (this.group_items_by_order && this.custom_group_items_by_order) {
-                    filteredGroups = this.filter_empty_groups(r.message);
+                // Handle all three modes:
+                let processedGroups = r.message;
+                
+                // Mode 1: Individual items (no grouping)
+                if (!this.group_items_by_order) {
+                    // No filtering needed - items are processed individually
+                }
+                // Mode 2: Grouped items, whole order status updates
+                else if (this.group_items_by_order && !this.custom_group_items_by_order) {
+                    // No filtering needed - orders stay until whole order is complete
+                }
+                // Mode 3: Custom mode - grouped items, individual status updates
+                else if (this.group_items_by_order && this.custom_group_items_by_order) {
+                    // Filter out empty orders where all items are delivered
+                    processedGroups = this.filter_empty_groups(r.message);
                 }
                 
-                this.make_food_commands(filteredGroups);
+                this.make_food_commands(processedGroups);
+                
+                // Update indicators only in custom mode (Mode 3)
+                if (this.group_items_by_order && this.custom_group_items_by_order) {
+                    this.update_order_indicator(processedGroups);
+                }
             }, 100);
         },
     });
+}
+
+// Filter empty groups for Mode 3 only
+filter_empty_groups(groups) {
+    const filtered = {};
+    const status_managed = this.table.data.status_managed || [];
+    
+    Object.entries(groups).forEach(([groupName, groupData]) => {
+        // Check if this group has any items with managed statuses
+        const hasManagedItems = groupData.items?.some(item => 
+            status_managed.includes(item.status)
+        );
+        
+        if (hasManagedItems) {
+            filtered[groupName] = groupData;
+        } else {
+            console.log(`Removing empty order container: ${groupName}`);
+        }
+    });
+    
+    return filtered;
+}
+
+// Update UI indicators for Mode 3 only
+update_order_indicator(groups) {
+    const hasOrders = Object.keys(groups).length > 0;
+    const commandContainer = $(this.command_container());
+    const parentContainer = commandContainer.closest('.widget-group');
+    
+    if (!hasOrders) {
+        // Hide container or show "no orders" message
+        parentContainer.hide();
+        
+        if (!parentContainer.find('.no-orders-message').length) {
+            parentContainer.append(`
+                <div class="no-orders-message" style="text-align: center; padding: 20px; color: #999;">
+                    <svg class="icon icon-lg" style="margin-bottom: 10px;">
+                        <use href="#icon-check"></use>
+                    </svg>
+                    <p>All orders completed</p>
+                </div>
+            `);
+        }
+    } else {
+        // Show container and remove "no orders" message
+        parentContainer.show();
+        parentContainer.find('.no-orders-message').remove();
+    }
 }
 
   table_info(data) {
