@@ -484,6 +484,11 @@ class RestaurantObject(Document):
             if self.group_items_by_order != 1:
                 groups[item["order_name"]].update(dict(data=item))
 
+        if self.group_items_by_order == 1:
+            for group in groups:
+                order = frappe.get_doc("Table Order", group)
+                groups[group].update(dict(data=order.short_data()["data"]))
+
         if self.group_items_by_order == 1 and self.custom_group_items_by_order == 1:
             for group in groups:
                 order = frappe.get_doc("Table Order", group)
