@@ -160,7 +160,10 @@ class OrderManage extends ObjectManage {
     this.#components.delete = RMHelper.default_button("Delete", 'trash', () => this.delete_current_order(), DOUBLE_CLICK);
 
     this.modal.title_container.empty().append(
-      RMHelper.return_main_button(this.title, () => this.modal.hide()).html()
+      RMHelper.return_main_button(this.title, () => {
+        this.modal.hide(false); 
+        location.reload();     
+      }).html()
     );
 
     this.modal.buttons_container.prepend(`
