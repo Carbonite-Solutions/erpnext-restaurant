@@ -253,6 +253,33 @@ class TableOrder(Document):
         self.save()
 
         frappe.db.set_value("Table Order", self.name, "docstatus", 1)
+       # Check and update reservation status to "Success" using table name
+        try:
+            table_order_customer = frappe.db.get_value("Table Order", self.name, "customer")
+            
+            if table_order_customer:
+                reservations = frappe.get_all("Restaurant Booking",
+                    filters={
+                        "table": self.table,
+                        "customer": table_order_customer,  
+                        "status": ["in", ["Open", "Waitlisted"]],
+                        "reservation_time": ["<=", frappe.utils.now_datetime()],
+                        "reservation_end_time": [">=", frappe.utils.now_datetime()]
+                    },
+                    fields=["name"]
+                )
+                
+                if reservations:
+                    for reservation in reservations:
+                        frappe.db.set_value("Restaurant Booking", reservation.name, {
+                            "status": "Success",
+                        })
+                    
+                    frappe.msgprint(_('Reservation marked as completed successfully for {0}').format(table_order_customer), 
+                                indicator='green', alert=True)
+            
+        except Exception as e:
+            frappe.log_error(f"Failed to update reservation status: {str(e)}")
         # Publish realtime event to notify clients that this table is now empty and its customer should be cleared
         frappe.publish_realtime('table_cleared_after_invoice', self.table)
         frappe.msgprint(_('Invoice Created'), indicator='green', alert=True)
