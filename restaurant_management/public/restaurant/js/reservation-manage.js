@@ -302,6 +302,7 @@ class Reservation extends DeskForm {
       filters: {
         table: table,
         reservation_time: [">=", moment().startOf('day').format("YYYY-MM-DD HH:mm:ss")],
+        status: ["in", ["Open", "Waitlisted"]],
       },
       order_by: "reservation_time"
     }).then(bookings => {
