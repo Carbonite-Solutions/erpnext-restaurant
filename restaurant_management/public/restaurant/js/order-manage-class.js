@@ -922,7 +922,7 @@ class OrderManage extends ObjectManage {
 
 
     objects.Rate.prop(
-      "disabled", !item_is_enabled_to_edit || !pos_profile.allow_rate_change
+      "disabled", !item_is_enabled_to_edit 
     ).val(data.rate, false);
 
     objects.Minus.prop("disabled", !item_is_enabled_to_edit);
