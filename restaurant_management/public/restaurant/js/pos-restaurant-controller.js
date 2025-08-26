@@ -2,6 +2,11 @@ erpnext.PointOfSale.RestaurantController = class {
 	constructor(wrapper) {
 		this.wrapper = $(wrapper).find('.layout-main-section');
 		this.page = wrapper.page;
+		frappe.after_ajax(() => {
+        this.check_opening_entry().then(() => {
+            this.make_app();
+        });
+    });
 	}
 
 	fetch_opening_entry() {
@@ -211,17 +216,31 @@ erpnext.PointOfSale.RestaurantController = class {
 	}
 
 	close_pos() {
-		if (!this.$components_wrapper.is(":visible")) return;
+    if (!this.$components_wrapper.is(":visible")) return;
 
-		let voucher = frappe.model.get_new_doc('POS Closing Entry');
-		voucher.pos_profile = this.frm.doc.pos_profile;
-		voucher.user = frappe.session.user;
-		voucher.company = this.frm.doc.company;
-		voucher.pos_opening_entry = this.pos_opening;
-		voucher.period_end_date = frappe.datetime.now_datetime();
-		voucher.posting_date = frappe.datetime.now_date();
-		frappe.set_route('Form', 'POS Closing Entry', voucher.name);
-	}
+    let voucher = frappe.model.get_new_doc('POS Closing Entry');
+    voucher.pos_profile = this.frm.doc.pos_profile;
+    voucher.user = frappe.session.user;
+    voucher.company = this.frm.doc.company;
+    voucher.pos_opening_entry = this.pos_opening;
+    voucher.period_end_date = frappe.datetime.now_datetime();
+    voucher.posting_date = frappe.datetime.now_date();
+    
+    frappe.set_route('Form', 'POS Closing Entry', voucher.name);
+
+    // 🔑 Jab Closing Entry submit ho jaye, turant page reload
+    frappe.ui.form.on('POS Closing Entry', {
+        after_save(frm) {
+            if (frm.doc.docstatus === 1) {   // submitted
+                frappe.msgprint(__('POS Closed. Reloading...'));
+                setTimeout(() => {
+                    location.reload();
+                }, 800);  // thoda delay for smooth UX
+            }
+        }
+    });
+}
+
 
 	init_item_selector() {
 		this.item_selector = new erpnext.PointOfSale.ItemSelector({
