@@ -199,9 +199,11 @@ class TableOrder(Document):
 
         if status is not None:
             RestaurantManage.production_center_notify(status)
+            
     def make_invoice(self, **kwargs):
         mode_of_payment = kwargs.get("mode_of_payment")
         split_type = kwargs.get("split_type")
+        diners_info = kwargs.get("diners_info")
 
         if self.link_invoice:
             frappe.throw(_("The order has been invoiced"))
@@ -253,38 +255,25 @@ class TableOrder(Document):
         self.save()
 
         frappe.db.set_value("Table Order", self.name, "docstatus", 1)
-       # Check and update reservation status to "Success" using table name
-        try:
-            table_order_customer = frappe.db.get_value("Table Order", self.name, "customer")
-            
-            if table_order_customer:
-                reservations = frappe.get_all("Restaurant Booking",
-                    filters={
-                        "table": self.table,
-                        "customer": table_order_customer,  
-                        "status": ["in", ["Open", "Waitlisted"]],
-                        "reservation_time": ["<=", frappe.utils.now_datetime()],
-                        "reservation_end_time": [">=", frappe.utils.now_datetime()]
-                    },
-                    fields=["name"]
-                )
-                
-                if reservations:
-                    for reservation in reservations:
-                        frappe.db.set_value("Restaurant Booking", reservation.name, {
-                            "status": "Success",
-                        })
-                    
-                    frappe.msgprint(_('Reservation marked as completed successfully for {0}').format(table_order_customer), 
-                                indicator='green', alert=True)
-            
-        except Exception as e:
-            frappe.log_error(f"Failed to update reservation status: {str(e)}")
         # Publish realtime event to notify clients that this table is now empty and its customer should be cleared
         frappe.publish_realtime('table_cleared_after_invoice', self.table)
+        
+        # Prepare response with receipt information if split by diners
+        response = {"status": True, "invoice_name": invoice.name}
+        
+        if split_type == "diners" and diners_info:
+            receipts = []
+            for diner in diners_info:
+                receipts.append({
+                    "invoice_name": invoice.name,
+                    "diner_number": diner["diner_number"],
+                    "amount": diner["amount"]
+                })
+            response["receipts"] = receipts
+        
         frappe.msgprint(_('Invoice Created'), indicator='green', alert=True)
 
-        return dict(status=True, invoice_name=invoice.name)
+        return response
 
 
 
