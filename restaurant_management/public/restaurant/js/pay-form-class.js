@@ -212,7 +212,6 @@ class PayForm extends DeskForm {
 
   pay() {
     if (!RM.can_pay) return;
-    // this.actions.pay.disable().val(__("Paying"));
     this.send_payment();
   }
   /**Actions */
@@ -665,7 +664,9 @@ class PayForm extends DeskForm {
           method: "make_invoice",
           args: {
             mode_of_payment: payment_args,
-            split_type: this.split_type
+            split_type: this.split_type,
+            // Add diner information for receipt printing
+            diners_info: this.split_type === "diners" ? this.get_diners_info() : null
           },
           always: (r) => {
             RM.ready();
@@ -677,7 +678,24 @@ class PayForm extends DeskForm {
               order_manage.check_item_editor_status();
 
               this.hide();
-              this.print(r.message.invoice_name);
+              
+              if (this.split_type === "diners" && r.message.receipts) {
+                // Show the main invoice first
+                this.print(r.message.invoice_name);
+                
+                // Then show each receipt with a delay
+                let delay = 2000;
+                r.message.receipts.forEach((receipt) => {
+                  setTimeout(() => {
+                    this.print_receipt(receipt, r.message.invoice_name);
+                  }, delay);
+                  delay += 2000;
+                });
+              } else {
+                // Regular payment
+                this.print(r.message.invoice_name);
+              }
+              
               order_manage.make_orders();
             }
           },
@@ -692,6 +710,154 @@ class PayForm extends DeskForm {
         }
       }
     });
+  }
+
+  // Add method to get diners information
+  get_diners_info() {
+    const diners = [];
+    const num_diners = parseInt($("#num_diners").val()) || 1;
+    const per_diner = (this.order.data.amount / num_diners).toFixed(2);
+    
+    for (let i = 1; i <= num_diners; i++) {
+      const paymentMethod = $(`.diner-payment-method[data-diner="${i}"]`).val();
+      diners.push({
+        diner_number: i,
+        amount: parseFloat(per_diner),
+        mode_of_payment: paymentMethod
+      });
+    }
+    
+    return diners;
+  }
+
+  // Add method to print individual receipts in popup with enhanced details
+  print_receipt(receipt_data, invoice_name) {
+    const title = `Receipt - Diner ${receipt_data.diner_number}`;
+    const currentDate = new Date().toLocaleDateString();
+    const currentTime = new Date().toLocaleTimeString();
+    
+    // Create a custom HTML receipt with all details
+    const receiptHTML = `
+      <div class="receipt-container" style="font-family: Arial, sans-serif; max-width: 300px; margin: 0 auto;">
+        <div class="receipt-header" style="text-align: center; border-bottom: 1px dashed #ccc; padding-bottom: 10px; margin-bottom: 10px;">
+          <h2 style="margin: 0; font-size: 18px;">${RM.pos_profile.company || 'Restaurant'}</h2>
+          <p style="margin: 5px 0; font-size: 14px;">${__('Receipt for Diner')} ${receipt_data.diner_number}</p>
+        </div>
+        
+        <div class="receipt-details" style="margin-bottom: 15px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <span>${__('Invoice')}:</span>
+            <span>${invoice_name}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <span>${__('Date')}:</span>
+            <span>${currentDate}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <span>${__('Time')}:</span>
+            <span>${currentTime}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <span>${__('Payment Method')}:</span>
+            <span>${receipt_data.mode_of_payment}</span>
+          </div>
+        </div>
+        
+        <div class="receipt-items" style="border-top: 1px dashed #ccc; border-bottom: 1px dashed #ccc; padding: 10px 0; margin-bottom: 15px;">
+          <div style="font-weight: bold; margin-bottom: 8px;">${__('Items')}:</div>
+          ${this.get_order_items_html()}
+        </div>
+        
+        <div class="receipt-total" style="text-align: right; font-weight: bold; font-size: 16px;">
+          <div style="margin-bottom: 5px;">${__('Amount Paid')}: ${frappe.format(receipt_data.amount, "Currency")}</div>
+        </div>
+        
+        <div class="receipt-footer" style="text-align: center; margin-top: 20px; font-size: 12px; color: #666;">
+          <p>${__('Thank you for dining with us!')}</p>
+        </div>
+      </div>
+    `;
+
+    // Create a custom modal for the receipt
+    const modalContent = `
+      <div class="modal fade" id="receiptModal-${receipt_data.diner_number}" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-sm" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+              <h4 class="modal-title">${title}</h4>
+            </div>
+            <div class="modal-body">
+              ${receiptHTML}
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-default" data-dismiss="modal">${__('Close')}</button>
+              <button type="button" class="btn btn-primary" onclick="window.printReceipt(${receipt_data.diner_number})">${__('Print')}</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    // Add the modal to the page
+    $('body').append(modalContent);
+    
+    // Add global print function
+    window.printReceipt = (dinerNumber) => {
+      const printContent = $(`#receiptModal-${dinerNumber} .modal-body`).html();
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>${title}</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+              @media print {
+                .receipt-container { max-width: 100% !important; }
+              }
+            </style>
+          </head>
+          <body>${printContent}</body>
+        </html>
+      `);
+      printWindow.document.close();
+      
+      setTimeout(() => {
+        printWindow.print();
+        // printWindow.close(); // Uncomment if you want to close after printing
+      }, 500);
+    };
+    
+    // Show the modal
+    $(`#receiptModal-${receipt_data.diner_number}`).modal('show');
+    
+    // Remove modal from DOM when closed
+    $(`#receiptModal-${receipt_data.diner_number}`).on('hidden.bs.modal', function() {
+      $(this).remove();
+    });
+  }
+
+  // Helper method to generate HTML for order items
+  get_order_items_html() {
+    let itemsHTML = '';
+    const items = this.order.data.items || [];
+    
+    if (items.length > 0) {
+      items.forEach(item => {
+        itemsHTML += `
+          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <span>${item.item_name || item.item_code} x${item.qty || 1}</span>
+            <span>${frappe.format(item.amount || item.rate * item.qty, "Currency")}</span>
+          </div>
+        `;
+      });
+    } else {
+      itemsHTML = `<div style="text-align: center; color: #666;">${__('No item details available')}</div>`;
+    }
+    
+    return itemsHTML;
   }
 
   print(invoice_name) {
