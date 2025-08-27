@@ -261,15 +261,46 @@ class TableOrder(Document):
         # Prepare response with receipt information if split by diners
         response = {"status": True, "invoice_name": invoice.name}
         
+        # In your make_invoice function, ensure you're passing all parameters
         if split_type == "diners" and diners_info:
             receipts = []
             for diner in diners_info:
                 receipts.append({
                     "invoice_name": invoice.name,
                     "diner_number": diner["diner_number"],
-                    "amount": diner["amount"]
+                    "amount": diner["amount"],
+                    "mode_of_payment": diner["mode_of_payment"],
+                    "items": [i.as_dict() for i in invoice.items],   
+                    "total_qty": sum([i.qty for i in invoice.items]),  
+                    "grand_total": invoice.grand_total           
                 })
             response["receipts"] = receipts
+        
+        elif split_type == "amount" and mode_of_payment:
+            receipts = []
+            payments_data = mode_of_payment.get("payments", [])
+
+            # Handle backward compatibility (dict input instead of list)
+            if isinstance(payments_data, dict):
+                payments_data = [{"mode_of_payment": mp, "amount": amt} for mp, amt in payments_data.items()]
+
+            for idx, p in enumerate(payments_data, start=1):
+                if p.get("amount", 0) > 0:
+                    receipts.append({
+                        "invoice_name": invoice.name,
+                        "part_number": idx,
+                        "amount": p["amount"],
+                        "mode_of_payment": p["mode_of_payment"],
+                        "items": [i.as_dict() for i in invoice.items],
+                        "total_qty": sum([i.qty for i in invoice.items]),
+                        "grand_total": invoice.grand_total
+                    })
+
+            response["receipts"] = receipts
+
+
+
+
         
         frappe.msgprint(_('Invoice Created'), indicator='green', alert=True)
 
