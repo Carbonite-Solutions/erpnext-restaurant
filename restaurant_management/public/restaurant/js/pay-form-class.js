@@ -408,7 +408,7 @@ class PayForm extends DeskForm {
         <table class="table table-bordered" id="split_amount_table">
           <thead>
             <tr>
-              <th>${__("Part")}</th>
+              <th>${__("Diner")}</th>
               <th>${__("Amount")}</th>
               <th>${__("Payment Method")}</th>
               <th></th>
@@ -444,7 +444,7 @@ class PayForm extends DeskForm {
     
     const row = $(`
       <tr id="${rowId}">
-        <td>Part ${rowCount + 1}</td>
+        <td>Diner ${rowCount + 1}</td>
         <td><input type="number" class="form-control split-amount" min="0" step="0.01"></td>
         <td>
           <select class="form-control split-payment-method">
@@ -679,22 +679,21 @@ class PayForm extends DeskForm {
 
               this.hide();
               
-              if (this.split_type === "diners" && r.message.receipts) {
-                // Show the main invoice first
-                this.print(r.message.invoice_name);
-                
-                // Then show each receipt with a delay
-                let delay = 2000;
-                r.message.receipts.forEach((receipt) => {
-                  setTimeout(() => {
-                    this.print_receipt(receipt, r.message.invoice_name);
-                  }, delay);
-                  delay += 2000;
-                });
-              } else {
-                // Regular payment
-                this.print(r.message.invoice_name);
-              }
+              if ((this.split_type === "diners" || this.split_type === "amount") && r.message.receipts) {
+              // Show the main invoice first
+              this.print(r.message.invoice_name);
+
+              let delay = 2000;
+              r.message.receipts.forEach((receipt) => {
+                setTimeout(() => {
+                  this.print_receipt(receipt, r.message.invoice_name);
+                }, delay);
+                delay += 2000;
+              });
+            } else {
+              this.print(r.message.invoice_name);
+            }
+
               
               order_manage.make_orders();
             }
@@ -731,134 +730,163 @@ class PayForm extends DeskForm {
   }
 
   // Add method to print individual receipts in popup with enhanced details
-  print_receipt(receipt_data, invoice_name) {
-    const title = `Receipt - Diner ${receipt_data.diner_number}`;
-    const currentDate = new Date().toLocaleDateString();
-    const currentTime = new Date().toLocaleTimeString();
-    
-    // Create a custom HTML receipt with all details
-    const receiptHTML = `
-      <div class="receipt-container" style="font-family: Arial, sans-serif; max-width: 300px; margin: 0 auto;">
-        <div class="receipt-header" style="text-align: center; border-bottom: 1px dashed #ccc; padding-bottom: 10px; margin-bottom: 10px;">
-          <h2 style="margin: 0; font-size: 18px;">${RM.pos_profile.company || 'Restaurant'}</h2>
-          <p style="margin: 5px 0; font-size: 14px;">${__('Receipt for Diner')} ${receipt_data.diner_number}</p>
-        </div>
-        
-        <div class="receipt-details" style="margin-bottom: 15px;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-            <span>${__('Invoice')}:</span>
-            <span>${invoice_name}</span>
-          </div>
-          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-            <span>${__('Date')}:</span>
-            <span>${currentDate}</span>
-          </div>
-          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-            <span>${__('Time')}:</span>
-            <span>${currentTime}</span>
-          </div>
-          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-            <span>${__('Payment Method')}:</span>
-            <span>${receipt_data.mode_of_payment}</span>
-          </div>
-        </div>
-        
-        <div class="receipt-items" style="border-top: 1px dashed #ccc; border-bottom: 1px dashed #ccc; padding: 10px 0; margin-bottom: 15px;">
-          <div style="font-weight: bold; margin-bottom: 8px;">${__('Items')}:</div>
-          ${this.get_order_items_html()}
-        </div>
-        
-        <div class="receipt-total" style="text-align: right; font-weight: bold; font-size: 16px;">
-          <div style="margin-bottom: 5px;">${__('Amount Paid')}: ${frappe.format(receipt_data.amount, "Currency")}</div>
-        </div>
-        
-        <div class="receipt-footer" style="text-align: center; margin-top: 20px; font-size: 12px; color: #666;">
-          <p>${__('Thank you for dining with us!')}</p>
-        </div>
-      </div>
-    `;
+  // Add method to print individual receipts in popup with enhanced details
+    print_receipt(receipt_data, invoice_name) {
+      const title = this.split_type === "diners"
+        ? `Receipt - Diner ${receipt_data.diner_number}`
+        : `Receipt - Part ${receipt_data.part_number}`; 
 
-    // Create a custom modal for the receipt
-    const modalContent = `
-      <div class="modal fade" id="receiptModal-${receipt_data.diner_number}" tabindex="-1" role="dialog">
-        <div class="modal-dialog modal-sm" role="document">
-          <div class="modal-content">
-            <div class="modal-header">
-              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-              </button>
-              <h4 class="modal-title">${title}</h4>
+      const currentDate = new Date().toLocaleDateString();
+      const currentTime = new Date().toLocaleTimeString();
+
+      // Create a custom HTML receipt with all details
+      const receiptHTML = `
+        <div class="receipt-container" style="font-family: Arial, sans-serif; max-width: 300px; margin: 0 auto;">
+          <div class="receipt-header" style="text-align: center; border-bottom: 1px dashed #ccc; padding-bottom: 10px; margin-bottom: 10px;">
+            <h2 style="margin: 0; font-size: 18px;">${RM.pos_profile.company || 'Restaurant'}</h2>
+            <p style="margin: 5px 0; font-size: 14px;">
+              ${this.split_type === "diners" ? __('Receipt for Diner') + " " + receipt_data.diner_number : __('Receipt for Amount')}
+            </p>
+          </div>
+          
+          <div class="receipt-details" style="margin-bottom: 15px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+              <span>${__('Invoice')}:</span>
+              <span>${invoice_name}</span>
             </div>
-            <div class="modal-body">
-              ${receiptHTML}
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+              <span>${__('Date')}:</span>
+              <span>${currentDate}</span>
             </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-default" data-dismiss="modal">${__('Close')}</button>
-              <button type="button" class="btn btn-primary" onclick="window.printReceipt(${receipt_data.diner_number})">${__('Print')}</button>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+              <span>${__('Time')}:</span>
+              <span>${currentTime}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+              <span>${__('Payment Method')}:</span>
+              <span>${receipt_data.mode_of_payment}</span>
+            </div>
+          </div>
+          
+          <div class="receipt-items" style="border-top: 1px dashed #ccc; border-bottom: 1px dashed #ccc; padding: 10px 0; margin-bottom: 15px;">
+            <div style="display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 8px;">
+              <span>${__('Items')}</span>
+              <span>${__('Qty')}</span>
+              <span>${__('Total')}</span>
+            </div>
+            ${this.get_order_items_html(receipt_data)}
+          </div>
+
+          <div class="receipt-total" style="text-align: right; font-weight: bold; font-size: 16px;">
+            <div style="margin: 10px 0; font-size: 20px; font-weight: bold; padding-top: 8px;">
+              ${__('Amount Paid')}: ${frappe.format(receipt_data.amount, "Currency")}
+            </div>
+          </div>
+          
+          <div class="receipt-footer" style="text-align: center; margin-top: 20px; font-size: 12px; color: #666;">
+            <p>${__('Thank you for dining with us!')}</p>
+          </div>
+        </div>
+      `;
+
+      // Build unique modal ID (works for diner & amount splits)
+      const modalId = `receiptModal-${invoice_name}-${this.split_type}-${receipt_data.diner_number || receipt_data.part_number}`;
+
+      // Create modal
+      const modalContent = `
+        <div class="modal fade" id="${modalId}" tabindex="-1" role="dialog">
+          <div class="modal-dialog modal-sm" role="document">
+            <div class="modal-content">
+              <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title">${title}</h4>
+              </div>
+              <div class="modal-body">
+                ${receiptHTML}
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">${__('Close')}</button>
+                <button type="button" class="btn btn-primary" onclick="window.printReceipt('${modalId}', '${title}')">${__('Print')}</button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    `;
-    
-    // Add the modal to the page
-    $('body').append(modalContent);
-    
-    // Add global print function
-    window.printReceipt = (dinerNumber) => {
-      const printContent = $(`#receiptModal-${dinerNumber} .modal-body`).html();
-      const printWindow = window.open('', '_blank');
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>${title}</title>
-            <style>
-              body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-              @media print {
-                .receipt-container { max-width: 100% !important; }
-              }
-            </style>
-          </head>
-          <body>${printContent}</body>
-        </html>
-      `);
-      printWindow.document.close();
-      
-      setTimeout(() => {
-        printWindow.print();
-        // printWindow.close(); // Uncomment if you want to close after printing
-      }, 500);
-    };
-    
-    // Show the modal
-    $(`#receiptModal-${receipt_data.diner_number}`).modal('show');
-    
-    // Remove modal from DOM when closed
-    $(`#receiptModal-${receipt_data.diner_number}`).on('hidden.bs.modal', function() {
-      $(this).remove();
-    });
-  }
+      `;
+
+      // Add modal to page
+      $('body').append(modalContent);
+
+      // Global print function (handles multiple receipts)
+      window.printReceipt = (modalId, title) => {
+        const printContent = $(`#${modalId} .modal-body`).html();
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+          <html>
+            <head>
+              <title>${title}</title>
+              <style>
+                body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+                @media print {
+                  .receipt-container { max-width: 100% !important; }
+                }
+              </style>
+            </head>
+            <body>${printContent}</body>
+          </html>
+        `);
+        printWindow.document.close();
+        setTimeout(() => {
+          printWindow.print();
+        }, 500);
+      };
+
+      // Show modal
+      $(`#${modalId}`).modal('show');
+
+      // Clean up after close
+      $(`#${modalId}`).on('hidden.bs.modal', function() {
+        $(this).remove();
+      });
+    }
+
 
   // Helper method to generate HTML for order items
-  get_order_items_html() {
+  get_order_items_html(receipt_data) {
     let itemsHTML = '';
-    const items = this.order.data.items || [];
-    
+    // fallback to this.order.data.items if no items in receipt_data
+    const items = receipt_data.items && receipt_data.items.length
+      ? receipt_data.items
+      : (this.order?.data?.items || []);
+
     if (items.length > 0) {
       items.forEach(item => {
         itemsHTML += `
           <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-            <span>${item.item_name || item.item_code} x${item.qty || 1}</span>
+            <span>${item.item_name || item.item_code}</span>
+            <span>${item.qty || 1}</span>
             <span>${frappe.format(item.amount || item.rate * item.qty, "Currency")}</span>
           </div>
         `;
       });
+
+      // 👇 Add totals
+      itemsHTML += `
+        <hr>
+        <div style="display: flex; justify-content: space-between; font-weight: bold;">
+          <span>Grand Total:</span>
+          <span>${frappe.format(receipt_data.grand_total || 0, "Currency")}</span>
+        </div>
+      `;
     } else {
-      itemsHTML = `<div style="text-align: center; color: #666;">${__('No item details available')}</div>`;
+      itemsHTML = `<div style="text-align: center; color: #666;">No item details available</div>`;
     }
-    
+
+
     return itemsHTML;
   }
+
 
   print(invoice_name) {
     if (!RM.can_pay) return;
