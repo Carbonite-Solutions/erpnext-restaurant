@@ -359,10 +359,10 @@
       section.html(`
         <div class="form-group">
           <label>${__("Number of Diners")}</label>
-          <input type="number" id="num_diners" class="form-control" min="1" max="10" value="1">
+          <input type="number" id="num_diners" class="form-control" min="1" max="10" value="0">
         </div>
         <div id="diners_split_summary" class="alert alert-info mt-2"></div>
-      `);
+      `); 
 
       $("#num_diners").on("input", () => {
         this.update_diners_split();
@@ -785,9 +785,12 @@
             </div>
 
             <div class="receipt-total" style="text-align: right; font-weight: bold; font-size: 16px;">
-              <div style="margin: 10px 0; font-size: 20px; font-weight: bold; padding-top: 8px;">
-                ${__('Amount Paid')}: ${frappe.format(receipt_data.amount, "Currency")}
-              </div>
+            <div style="margin: 10px 0; font-size: 18px; font-weight: bold; padding-top: 8px;">
+              ${__('Split Amount')}: ${frappe.format(receipt_data.amount, "Currency")}
+            </div>
+              <div style="margin: 10px 0; font-size: 18px; font-weight: bold; padding-top: 8px;">
+                ${__('Received Amount')}: ${frappe.format(receipt_data.amount, "Currency")}
+                </div>
             </div>
             
             <div class="receipt-footer" style="text-align: center; margin-top: 20px; font-size: 12px; color: #666;">
